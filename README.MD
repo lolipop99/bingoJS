@@ -1,6 +1,6 @@
 参考文档：[http://bingojs.mydoc.io/](http://bingojs.mydoc.io/)
 
-库包下载：[https://git.oschina.net/bingoJS/bingoJS/blob/master/bingo.zip?dir=0&filepath=bingo.zip&oid=61edd105fea41349b112ee5d2cd325cdc698a88d&sha=bac1bc1992e3d4659112d106b07c31df5656442f](https://git.oschina.net/bingoJS/bingoJS/blob/master/bingo.zip?dir=0&filepath=bingo.zip&oid=61edd105fea41349b112ee5d2cd325cdc698a88d&sha=bac1bc1992e3d4659112d106b07c31df5656442f)
+库包下载：[https://git.oschina.net/bingoJS/bingoJS/blob/master/bingo.zip?dir=0&filepath=bingo.zip](https://git.oschina.net/bingoJS/bingoJS/blob/master/bingo.zip?dir=0&filepath=bingo.zip&oid=61edd105fea41349b112ee5d2cd325cdc698a88d&sha=bac1bc1992e3d4659112d106b07c31df5656442f)
 
 ####1、关于bingoJS
 bingoJS是一个前端MV*开发框架，可能还不算一套完整的框架要做的事。但还会不但完善，引入前端框架所需基础要素，目前已经支持模块化开发、按需动态加载、完善的双向绑定、依赖注入等；让你在开发只关注业务代码的实现。
