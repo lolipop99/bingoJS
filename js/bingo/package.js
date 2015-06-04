@@ -84,7 +84,7 @@
             if (_isLoadEnd()) {
                 _endDone();
             }
-        }, 50);
+        }, 5);
 
     };
     var _endDone = function () {

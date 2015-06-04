@@ -52,27 +52,62 @@ var fnDef = function ($view, $node, $withData) {
 
 var aCls = bingo.Class(function () {
 
+    //定义静态方法
+    this.Static({
+        stFn: function () {
+        }
+    });
+
+    //定义属性Prop
     this.Prop({
         vv:1
     });
 
+    //定义类普通属性和方法
     this.Define({
         _a: 1,
-        datas: { a: 1, b: 1 },
         fn: function () {
+            console.log('a fn');
             this._a = 1;
         }
     });
 
+    //初始化
     this.Initialization(function (p) {
         this._a = 22 + p;
+
+        //如果是object, 数组都要分离， 最好在初始化里定义， 不要放在Define里
+        //当然框架会做分离，但对性能有影响
+        this.datas = { a: 1, b: 1 }
+
     });
 
 });
 
+////新建实例， 就初始方法为1
+//var a = aCls.NewObject(1);
+////使用a.fn方法
+//a.fn();
+////使用data.a
+//a.datas.a = 111;
+////设置vv prop
+//a.vv(1111);
+////使用静态方法stFn
+//aCls.stFn();
+
+
+
+
 var bCls = bingo.Class(aCls, function () {
+    var _base = aCls.prototype;
 
     this.Define({
+        //重写父类fn方法
+        fn: function () {
+            console.log('b fn');
+            //调用aCls方法
+            _base.fn.apply(arguments);
+        },
         //bbbb
         _b: 1,
         //dddd
@@ -108,7 +143,7 @@ var a = aCls.NewObject(1),
     b = bCls.NewObject(2),
     c = cCls.NewObject(3);
 
-c.pp()
+//c.pp()
 
 //var list = bingo.linq([1, 2]).where(function (item) { return item; }).first();
 

@@ -3,7 +3,8 @@
     //version 1.0.1
     "use strict";
 
-    var _renderReg = /[ ]*([^ ]+)[ ]+in[ ]+([^ ]+)/g;
+    //var _renderReg = /[ ]*([^ ]+)[ ]+in[ ]+([^ ]+)(?:[ ]+tmpl=([^ ]+))*/g;
+    var _renderReg = /[ ]*([^ ]+)[ ]+in[ ]+(?:(.+)[ ]+tmpl[ ]*=[ ]*(.+)|(.+))/;
 
     /*
         使用方法:
@@ -20,38 +21,49 @@
     */
     bingo.each(['bg-for', 'bg-render'], function (cmdName) {
 
-        var _cacheObj = {};
+        var attrDataName = [cmdName, 'data'].join('_');
         bingo.command(cmdName, function () {
             return {
                 priority: 100,
                 compileChild: false,
-                link: ['$view', '$compile', '$node', '$attr', '$render', '$ajax', function ($view, $compile, $node, $attr, $render, $ajax) {
+                compilePre: ['$node', function ($node) {
+                    var code = $node.attr(cmdName);
+                    if (bingo.isNullEmpty(code)) return;
+                    var _itemName = '', _dataName = '', _tmpl = '';
+                    //分析item名称, 和数据名称
+                    code.replace(_renderReg, function () {
+                        _itemName = arguments[1];
+                        _dataName = arguments[2];
+                        _tmpl = bingo.trim(arguments[3]);
+
+                        if (bingo.isNullEmpty(_dataName))
+                            _dataName = arguments[4];
+
+                        //console.log('render tmpl:', arguments);
+                    });
+                    $node.attr(cmdName, _dataName);
+                    if (bingo.isNullEmpty(_itemName) || bingo.isNullEmpty(_dataName)) return;
+
+                    $node.data(attrDataName, {
+                        itemName: _itemName,
+                        dataName: _dataName,
+                        tmpl: _tmpl
+                    });
+                }],
+                link: ['$view', '$compile', '$node', '$attr', '$render', '$tmpl', function ($view, $compile, $node, $attr, $render, $tmpl) {
                     /// <param name="$view" value="bingo.view.viewClass()"></param>
                     /// <param name="$compile" value="function(){return bingo.compile();}"></param>
                     /// <param name="$node" value="$([])"></param>
                     /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
                     /// <param name="$render" value="function(html){return  bingo.render('');}"></param>
-                    /// <param name="$ajax" value="function(url){return bingo.ajax('');}"></param>
 
-                    var code = $attr.$prop();
-                    if (bingo.isNullEmpty(code)) return;
-                    var _itemName = '', _dataName = '';
-                    _renderReg.lastIndex = 0;
-                    //分析item名称, 和数据名称
-                    code.replace(_renderReg, function () {
-                        _itemName = arguments[1];
-                        _dataName = arguments[2];
-                    });
-                    if (bingo.isNullEmpty(_itemName) || bingo.isNullEmpty(_dataName)) return;
-                    $attr.$prop(_dataName);
+                    var attrData = $node.data(attrDataName);
+                    //console.log('attrData', attrData);
 
-                    var renderObj = null;
-
-                    var getRenderObj = function (html) {
-                        //console.log(html);
-                        return $render(html);
-                    };
-
+                    if (!attrData) return;
+                    var _itemName = attrData.itemName,
+                        _tmpl = attrData.tmpl;
+ 
                     var _renderSimple = function (datas) {
 
                         var jElement = $node;
@@ -66,7 +78,8 @@
                     };
 
 
-                    var initTmpl = function () {
+                    var initTmpl = function (tmpl) {
+                        renderObj = $render(tmpl);
                         $attr.$subsResults(function (newValue) {
                             _renderSimple(newValue);
                         }, true);
@@ -75,32 +88,32 @@
                         });
                     };
 
-                    var tmplUrl = $node.attr('tmpl-url'), tmplNode = null;
-                    if (!bingo.isNullEmpty(tmplUrl)) {
-                        //从url加载
-                        $ajax(tmplUrl).success(function (html) {
-                            if (!bingo.isNullEmpty(html)) {
-                                renderObj = getRenderObj(html);
-                                initTmpl();
-                            }
-                        }).dataType('text').cacheTo(_cacheObj).cacheMax(50).get();
+
+                    var html = '', renderObj = null;
+
+                    if (bingo.isNullEmpty(_tmpl)) {
+                        var jChild = $node.children();
+                        if (jChild.size() === 1 && jChild.is('script'))
+                            html = jChild.html();
+                        else
+                            html = $node.html();
                     } else {
-                        var tmplId = $node.attr('tmpl-id');
-                        var html = '';
-                        if (bingo.isNullEmpty(tmplId)) {
-                            //从dom id加载
-                            var jChild = $node.children();
-                            if (jChild.size() === 1 && jChild.is('script'))
-                                html = jChild.html();
-                            else
-                                html = $node.html();
+                        var isPath = (_tmpl.indexOf('#') != 0);
+                        if (isPath){
+                            //从url加载
+                            $tmpl(_tmpl).success(function (html) {
+                                if (!bingo.isNullEmpty(html)) {
+                                    initTmpl(html);
+                                }
+                            }).get();
                         } else {
-                            html = $('#' + tmplId).html();
+                            //从ID加载
+                            html = $(_tmpl).html();
                         }
-                        if (!bingo.isNullEmpty(html)) {
-                            renderObj = getRenderObj(html);
-                            initTmpl();
-                        }
+                    }
+
+                    if (!bingo.isNullEmpty(html)) {
+                        initTmpl(html);
                     }
 
                 }]

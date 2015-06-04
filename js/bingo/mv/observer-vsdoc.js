@@ -43,7 +43,7 @@
                 /// <summary>
                 /// 发布信息
                 /// </summary>
-                return true;
+                return this;
             },
             publishAsync: function () {
                 /// <summary>

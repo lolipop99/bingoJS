@@ -41,11 +41,11 @@ bingo.command('bg-model', function () {
         }
 
 
-        $attr.$subs(function () { return $attr.$value(); }, function (newValue) {
+        $attr.$subsValue(function (newValue) {
             _setElementValue(newValue);
         });
 
-        $attr.$init(function () { return $attr.$value() }, function (value) {
+        $attr.$initValue(function (value) {
             _setElementValue(value);
         });
 

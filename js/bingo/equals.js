@@ -10,7 +10,7 @@
             return _ArrayEquals(p1, p2);
         } else if (p1 instanceof RegExp) {
             return _RegExpEquals(p1, p2);
-        } else if (bingo.isFunction(p1)){
+        } else if (bingo.isFunction(p1)) {
             return (bingo.isFunction(p2) && p1.valueOf() === p2.valueOf());
         } else if (bingo.isObject(p1)) {
             return _ObjectEquals(p1, p2);
@@ -18,7 +18,7 @@
             return ((typeof (p1) === typeof (p2)) && (p1.valueOf() === p2.valueOf()));
             //return ((typeof (p1) === typeof (p2)) && (p1 === p2));
         }
-    }
+    };
 
     var _RegExpEquals = function (reg1, reg2) {
         return (reg2 instanceof RegExp) &&

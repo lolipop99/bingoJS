@@ -2,7 +2,7 @@
 bingo.command('bg-if', function () {
     return {
         compileChild: false,
-        compile: ['$attr', '$node', '$compile', function compile($attr, $node, $compile) {
+        compile: ['$attr', '$node', '$compile', function($attr, $node, $compile) {
             /// <param name="$compile" value="function(){return bingo.compile();}"></param>
             /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
             /// <param name="$node" value="$([])"></param>

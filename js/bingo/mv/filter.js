@@ -76,7 +76,7 @@
 
         },
         //是否有参数
-        hasFilterParam: function (s) { return (s.indexOf(':') >= 0) },
+        hasFilterParam: function (s) { return (s.indexOf(':') >= 0); },
         //如果有参数, 取得参数名称
         getFilterParamName: function (s) {
             var sL = s.split(':');
@@ -87,8 +87,8 @@
             var filter = view ? view.$getModule(name).filter(name) : bingo.filter(name);
             return filter;
         },
-        paramFn: function (item, view, node, withData) {
-            return _filter.getScriptContextFun(this, item, view, node, withData);
+        paramFn: function (obj, item, view, node, withData) {
+            return _filter.getScriptContextFun(obj, item, view, node, withData);
             //return function (withData) {
             //    return _filter.getScriptContextFun(this, item, withData.length);
             //};
@@ -111,7 +111,7 @@
                     if (!ftO) return;
                     ftO = view ? bingo.factory(ftO).view(view).node(node).inject() : ftO();
                     //view && (ftO = bingo.factory(ftO).view(view).node(node).inject());
-                    obj.paramFn = _filter.paramFn(item, view, node, withData);
+                    obj.paramFn = _filter.paramFn(obj, item, view, node, withData);
                 } else {
                     obj.name = item;
                     ftO = _filter.getFilterByView(view, obj.name);
@@ -138,6 +138,8 @@
             var hasFilter = _filter.hasFilter(content);
             filter._filters = hasFilter ? _filter.getFilterObjList(view, node, content, withData) : [];
             filter.content = _filter.removerFilterString(content);
+            filter.contentFT = content.replace(filter.content, '');
+            //console.log('contentFT', filter.contentFT, filter);
             if (filter._filters.length > 0) {
                 filter.filter = function (value) {
                     /// <summary>

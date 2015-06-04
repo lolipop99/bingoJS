@@ -102,21 +102,24 @@
         if (bingo.isNullEmpty(name)) return;
         if (arguments.length == 1)
             return _getModuleValue.call(this, '_services', name);
-        else
+        else {
+            fn.$owner = { module: this };
             return this._services[name] = fn;
+        }
     }, _controllerFn = function (name, fn) {
         if (bingo.isNullEmpty(name)) return;
         var conroller = this._controllers[name];
         if (!conroller)
             conroller = this._controllers[name] = {
+                module: this,
                 name: name, _actions: {},
                 action: _actionFn
             };
         if (bingo.isFunction(fn)) {
-            var hasLM = _lastModule
+            var hasLM = _lastModule;
             !hasLM && (_lastModule = this);
             _lastContoller = conroller;
-            fn();
+            fn.call(conroller);
             _lastContoller = null;
             !hasLM && (_lastModule = null);
         }
@@ -124,8 +127,10 @@
     }, _actionFn = function (name, fn) {
         if (arguments.length == 1)
             return this._actions[name];
-        else
+        else {
+            fn.$owner = { conroller: this, module: this.module };
             return this._actions[name] = fn;
+        }
     }, _getLastModule = function () {
         return _lastModule || _defaultModule;
     }, _getModuleValue = function (prop, name) {
@@ -159,7 +164,7 @@
 
             if (bingo.isFunction(fn)) {
                 _lastModule = module;
-                fn();
+                fn.call(module);
                 _lastModule = null;
             }
             return module;

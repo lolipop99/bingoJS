@@ -36,7 +36,7 @@
                 else
                     fn._triggerFn([p1], false);
                 fn.owner = null;
-                return fn.$owner() || this;;
+                return fn.$owner() || this;
             }
         };
         fn._isVar_ = _isVar_;

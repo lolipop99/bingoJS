@@ -10,6 +10,7 @@
 */
 
 bingo.location = function (node) {
+    /// <param name="node">可选， 默认document.documentElement</param>
     var $node = $(node || document.documentElement);
     var frameName = 'bg-route';
     return {
@@ -19,14 +20,13 @@ bingo.location = function (node) {
             return routeContext.params;
         },
         href: function (url, target) {
-            if (arguments.length == 0)
-                return this.toString();
-            else {
-                var frame = bingo.isNullEmpty(target) ? this.frame() : $('[' + frameName + '][' + frameName + '-name="' + target + '"]');
-                if (frame.size() > 0) {
-                    frame.attr(frameName, url).trigger(frameName + '-change', [url]);
-                }
+            var frame = bingo.isNullEmpty(target) ? this.frame() : $('[' + frameName + '][' + frameName + '-name="' + target + '"]');
+            if (frame.size() > 0) {
+                frame.attr(frameName, url).trigger(frameName + '-change', [url]);
             }
+        },
+        reload: function (target) {
+            this.href(this.url(), target);
         },
         onChange: function (callback) {
             callback && this.frame().on(frameName + '-change', function (e, url) {
@@ -39,12 +39,15 @@ bingo.location = function (node) {
             });
         },
         frame: function () { return $node.closest('[' + frameName + ']'); },
-        toString: function () {
+        url: function () {
             var frame = this.frame();
             if (frame.size() > 0)
                 return frame.attr(frameName);
             else
                 return window.location + '';
+        },
+        toString: function () {
+            return this.url();
         }
     };
 };

@@ -211,11 +211,11 @@
 
         <div> ==for tmplId============== </div>
         <!--使用tmpl-id属性从fortmpl1取模板内容-->
-        <div bg-for="item in [1,2,3]" tmpl-id="fortmpl1">
+        <div bg-for="item in [1,2,3 ] | take:[0,1] tmpl=#fortmpl1">
         </div>
         <!--使用for语句从fortmpl1取模板内容-->
-        <div bg-for="mItem in {list:[1,2,3]}">
-            {{for item in mItem.list tmpl=#fortmpl1 /}}
+        <div bg-for="mItem in {list:[4,2,3] }">
+            {{for item in mItem.list | take:[1] tmpl=#fortmpl1 /}}
         </div>
         <!--fortmpl1取模-->
         <script type="text/html" id="fortmpl1">
@@ -225,7 +225,7 @@
 
         <div> ==for tmpl url============== </div>
         <!--使用tmpl-id属性从fortmpl1取模板内容-->
-        <div bg-for="item in [1,2,3]" tmpl-url="test/tmpl/for.html">
+        <div bg-for="item in [2,1,3] | asc tmpl=test/tmpl/for.html">
         </div>
         <!--使用for语句从fortmpl1取模板内容-->
         <div bg-for="mItem in {list:[1,2,3]}">
@@ -242,8 +242,8 @@
     </div>
     <!--viewCommand end-->
 
-    <div>
-        <div><a href="#view/user/form1" bg-target="main">to form1</a>    <a href="#view/user/form2" bg-target="main">to form2</a></div>
+    <div >
+        <div><a href="#{{: bingo.routeLink('view', {controller:'user', action:'form1'})}}" bg-target="main">to form1</a>    <a href="#view/user/form2" bg-target="main">to form2</a></div>
         <div bg-route="view/user/form1" bg-route-name="main"></div>
     </div>
 

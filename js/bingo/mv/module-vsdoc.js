@@ -138,6 +138,7 @@
         /// <param name="fn" type="function(injects..)">可选</param>
         if (bingo.isNullEmpty(name)) return;
         if (fn) {
+            fn.$owner = { module: this };
             _lastModule = this;
             bingo.factory(fn);
             _lastModule = null;
@@ -156,14 +157,15 @@
         var conroller = this._controllers[name];
         if (!conroller)
             conroller = this._controllers[name] = {
-                name: name, _actions: {},_md:this,
+                module: this,
+                name: name, _actions: {},
                 action: _actionFn
             };
         if (bingo.isFunction(fn)) {
             var hasLM = _lastModule
             !hasLM && (_lastModule = this);
             _lastContoller = conroller;
-            fn();
+            fn.call(conroller);
             _lastContoller = null;
             !hasLM && (_lastModule = null);
         }
@@ -175,14 +177,16 @@
         /// <param name="name">定义或获取action名称</param>
         /// <param name="fn" type="function(injects..)">可选</param>
         if (fn) {
-            _lastModule = this._md;
+            fn.$owner = { conroller: this, module: this.module };
+            _lastModule = this.module;
             bingo.factory(fn);
             _lastModule = null;
         }
         if (arguments.length == 1)
             return this._actions[name];
-        else
+        else {
             return this._actions[name] = fn;
+        }
     }, _getLastModule = function () {
         return _lastModule || _defaultModule;
     }, _getModuleValue = function (prop, name) {
@@ -223,7 +227,7 @@
 
             if (bingo.isFunction(fn)) {
                 _lastModule = module;
-                fn();
+                fn.call(module);
                 _lastModule = null;
             }
             return module;
@@ -254,7 +258,7 @@
             /// <param name="fn" type="function(injects..)"></param>
             if (bingo.isFunction(name) || bingo.isArray(name)) {
                 //intellisenseLogMessage('_lastModule', !bingo.isNull(_lastModule));
-                //_lastModule = _lastContoller._md;
+                //_lastModule = _lastContoller.module;
                 bingo.factory(name);
                 return name;
             } else
@@ -322,7 +326,7 @@
 //        /// <param name="name">定义或获取action名称</param>
 //        /// <param name="fn" type="function(injects..)">可选</param>
 //        if (fn) {
-//            _lastModule = this._md;
+//            _lastModule = this.module;
 //            bingo.factory(fn);
 //        }
 //        if (arguments.length == 1)
@@ -352,7 +356,7 @@
 //                    service: _serviceFn,
 //                    controller: _controllerFn
 //                };
-//                module._controllers._md = module;
+//                module._controllers.module = module;
 //            }
 
 //            if (bingo.isFunction(fn)) {
@@ -389,7 +393,7 @@
 //            if (this.isNullEmpty(name) || !_lastContoller) return;
 //            if (name) {
 //                intellisenseLogMessage('_lastModule', !bingo.isNull(_lastModule));
-//                //_lastModule = _lastContoller._md;
+//                //_lastModule = _lastContoller.module;
 //                bingo.factory(fn);
 //            }
 //            _lastContoller.action.apply(_lastContoller, arguments);

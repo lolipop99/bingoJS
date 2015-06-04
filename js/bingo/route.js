@@ -134,7 +134,7 @@
     }, _paramToUrl = function (url, params, paramType) {
         //_urlToParams反操作, paramType:为0转到普通url参数(?a=1&b=2), 为1转到route参数($a:1$b:2)， 默认为0
         _tranAttrRex.lastIndex = 0;
-        if (!url || !_tranAttrRex.test(url) || !params) return bingo.path(url);
+        if (!url || !params) return bingo.path(url);
         var otherP = '', attr = '', val = '';
         bingo.eachProp(params, function (item, n) {
             attr = ['{', n, '}'].join('');
@@ -192,11 +192,16 @@
             return item;
         },
         getRouteByUrl: function (url) {
+            if (!url) return '';
+
+
+            var querys = url.split('?');
+            if (querys.length > 1) url = querys[0];
             var routeContext = null, name='';
             var params = null;
             bingo.each(this.datas, function () {
                 routeContext = this.context;
-                params = _urlToParams(url, routeContext)
+                params = _urlToParams(url, routeContext);
                 //如果params不为null, 认为是要查找的url
                 if (params) { name = this.name; return false; }
             });
@@ -210,15 +215,23 @@
                 params = bingo.extend({}, routeContext.defaultValue, params);
 
             if (bingo.isFunction(routeContext.toUrl))
-                routeContext.toUrl
+                routeContext.toUrl;
+
 
             var toUrl = bingo.isFunction(routeContext.toUrl) ?
                 routeContext.toUrl.call(routeContext, url, params)
                 : routeContext.toUrl;
 
+            if (querys.length > 1) {
+                params || (params = {});
+                querys[1].replace(/([^=&]+)\=([^=&]*)/g, function (find, name, value) {
+                    params[name] = value;
+                });
+            }
+
             var toUrl = _paramToUrl(toUrl, params);
 
-            return _makeRouteContext(name, url, toUrl, params);
+            return _makeRouteContext(name, url,  toUrl, params);
         }
     };
 

@@ -189,7 +189,7 @@
         this.Static({
             _syncList: [],
             getSyncList: function (view) {
-                return (view && view.__syncList_ && (view.__syncList_ = [])) || this._syncList
+                return (view && view.__syncList_ && (view.__syncList_ = [])) || this._syncList;
             },
             lastSync: function (view) {
                 var syncList = this.getSyncList(view);
@@ -241,8 +241,9 @@
             },
             _count: 0,
             //计数加一
-            addCount: function () {
-                this._count++; return this;
+            addCount: function (n) {
+                this._count += arguments.length == 0 ? 1 : n;
+                return this;
             },
             //计数减一, 计数为0时, 解决所有
             decCount: function () {

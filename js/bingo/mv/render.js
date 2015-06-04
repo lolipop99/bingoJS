@@ -55,7 +55,7 @@
 
     //var _renderRegx = /\{\{\s*(\/?)(\:|if|else|for|tmpl)([^}]*)\}/g;   //如果要扩展标签, 请在(if )里扩展如(if |for ), 保留以后扩展
     var _renderRegx = /\{\{\s*(\/?)(\:|if|else|for|tmpl|header|footer|empty|loading)(.*?)\}\}/g;   //如果要扩展标签, 请在(if )里扩展如(if |for ), 保留以后扩展
-    var _renderForeachRegx = /[ ]*([^ ]+)[ ]+in[ ]+([^ ]+)(?:[ ]+tmpl=([^ ]+))*/g;
+    var _renderForeachRegx = /[ ]*([^ ]+)[ ]+in[ ]+(?:(.+)[ ]+tmpl[ ]*=[ ]*(.+)[/]|(.+))*/g;
     var _newItem = function (content, isIf, isEnd, isTag, view, node, isElse, isForeach, role) {
         var item = {
             isIf: isIf === true,
@@ -76,9 +76,6 @@
             if (!item.isEnd) {
                 item.filterContext = content;
 
-                var flt = bingo.filter.createFilter(content, view, node);
-                item.content = flt.content;
-                item.flt = flt;
 
                 if (item.isForeach) {
                     var code = item.content;
@@ -87,10 +84,25 @@
                         //console.log('code', arguments);
                         var params = item.forParam = {};
                         params.itemName = arguments[1];
-                        params.dataName = item.content = arguments[2];
-                        params.tmpl = arguments[3];
+                        var dataName = arguments[2];
+                        params.tmpl = bingo.trim(arguments[3]);
+
+                        if (bingo.isNullEmpty(dataName))
+                            dataName = arguments[4]
+
+                        dataName = bingo.trim(dataName);
+                        var flt = bingo.filter.createFilter(dataName, view, node);
+                        item.content = flt.content;
+                        item.flt = flt;
+                        params.dataName = item.content = flt.content;
+                        //console.log('render tmpl:', params);
+                        //console.log('render tmpl:', arguments);
                     });
                     //console.log('forParam', item.forParam);
+                } else {
+                    var flt = bingo.filter.createFilter(content, view, node);
+                    item.content = flt.content;
+                    item.flt = flt;
                 }
                 item.fn = _getScriptContextFn(item.content, view);
             }
@@ -125,9 +137,9 @@
 
     var _compile = function (s, view, node) {
         var list = [],
-            pos = 0, parents = [], _isTmpl = false,
-            _last = function (len) { return (len > 0) ? parents[len - 1].children : list },
-            _parent = function (len) { return (len > 0) ? parents.pop().children : list };
+            pos = 0, parents = [], _isTmpl = false, tmplCount = 0,
+            _last = function (len) { return (len > 0) ? parents[len - 1].children : list; },
+            _parent = function (len) { return (len > 0) ? parents.pop().children : list; };
         s.replace(_renderRegx, function (findText, f1, f2, f3, findPos, allText) {
             //console.log(findText, 'f1:' + f1, 'f2:' + f2, 'f3:' + f3, findPos);
             //return;
@@ -149,15 +161,23 @@
                 //curList.push(textItem);
                 if (isTmpl) {
                     pos = findPos + findText.length;
+                    tmplCount = 1;
                     return;
                 }
             } else {
-                _isTmpl != (isEnd && isTmpl);
-                if (isEnd && isTmpl) {
-                    textItem && curList.push(textItem);
-                    _isTmpl = false;
-                } else {
-                    textItem && curList.push(textItem);
+                //_isTmpl != (isEnd && isTmpl);
+
+                if (isTmpl) {
+                    if (isEnd) {
+                        tmplCount--;
+                        _isTmpl = tmplCount > 0;
+                    } else
+                        tmplCount++;
+                }
+
+                textItem && curList.push(textItem);
+
+                if (_isTmpl) {
                     curList.push(_newItem(findText));
                 }
                 pos = findPos + findText.length;
@@ -169,7 +189,7 @@
             !bingo.isNullEmpty(f3) && (f3 = bingo.trim(f3));
 
             //else
-            var isElse = (f2 == 'else')
+            var isElse = (f2 == 'else');
             if (isElse) {
                 if (!bingo.isNullEmpty(f3)) {
                     //如果else 有条件内容
@@ -305,7 +325,7 @@
                     //if (!dataList) return;
                     var html = '';
                     if (bingo.isNullEmpty(tmplId)) {
-                        var compileData = item.compileData
+                        var compileData = item.compileData;
                         if (!compileData) {
                             compileData = item.compileData = _makeForCompile(item.children);
                             item.children = [];
@@ -319,7 +339,7 @@
                             } else {
                                 bingo.tmpl(tmplId, view).success(function (rs) {
                                     html = rs;
-                                }).cacheQurey(true).get();
+                                }).cacheQurey(true).async(false).get();
                             }
                             if (bingo.isNullEmpty(html)) return;
                             item.__renderObj = bingo.render(html, view, node);

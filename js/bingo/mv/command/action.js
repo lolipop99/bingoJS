@@ -48,7 +48,7 @@ bingo.command('bg-action', function () {
                 //添加action
                 val && $view.$addAction(val);
                 //编译
-                $compile().fromNode($node).compile();
+                $compile().fromNode($node[0].childNodes).compile();
             } else {
                 //使用url方式, 异步加载action, 走mvc开发模式
                 var url = attrVal;
@@ -57,16 +57,16 @@ bingo.command('bg-action', function () {
                 var actionContext = routeContext.actionContext();
 
                 if (actionContext.action) {
-                    //如果找到acion, 即已经找到action
+                    //如果acion不为空, 即已经定义action
 
                     //设置module
                     $view.$setModule(actionContext.module);
                     //添加action
                     $view.$addAction(actionContext.action);
                     //编译
-                    $compile().fromNode($node).compile();
+                    $compile().fromNode($node[0].childNodes).compile();
                 } else {
-                    //如果找到acion, 加载js
+                    //如果找不到acion, 加载js
 
                     //加载js后再断续解释
                     //$using有同步view启动作用, ready之后， 没有作用
@@ -79,7 +79,7 @@ bingo.command('bg-action', function () {
                             //添加action
                             $view.$addAction(actionContext.action);
                             //编译
-                            $compile().fromNode($node).compile();
+                            $compile().fromNode($node[0].childNodes).compile();
                         }
                     });
                 }

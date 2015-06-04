@@ -99,10 +99,10 @@
                     });
                 }
 
-                var ret = fn.apply(owner, injectParams) || {};
+                var ret = fn.apply(fn.$owner || owner, injectParams) || {};
                 if (isFirst) {
                     //intellisenseLogMessage('injectParams', JSON.stringify($injects), fn.toString());
-                    intellisenseSetCallContext(fn, owner, injectParams);
+                    intellisenseSetCallContext(fn, fn.$owner || owner, injectParams);
                     //intellisenseLogMessage('injectParams', JSON.stringify($injects), JSON.stringify(injectParams));
                 } else
                     injectObj[name] = ret;
@@ -118,8 +118,16 @@
                 }
                 else {
                     var moduleI = bingo.getModuleByView(this.view());
+                    //intellisenseLogMessage('moduleI', bingo.isNull(moduleI));
+
+                    var moduleDefault = bingo.defaultModule();
                     var factorys = moduleI.factory();
-                    fn = factorys[name] || moduleI.service(name);
+                    var factorys2 = moduleDefault == moduleI ? null : moduleDefault.factory();
+
+                    fn = factorys[name] || (factorys2 && factorys2[name]) || moduleI.service(name);
+
+                    //var factorys = moduleI.factory();
+                    //fn = factorys[name] || moduleI.service(name);
                     fn && (fn = _makeInjectAttrs(fn));
                 }
                 this.name(name).fn(fn);
@@ -146,6 +154,7 @@
             var list = bingo.clone(p, false);
             fn = list.pop();
             fn.$injects = list;
+            fn.$owner = p.$owner;
             //intellisenseLogMessage('$injects', JSON.stringify(list), fn.toString());
         } else if (bingo.isFunction(p)) {
             fn = p;

@@ -11,6 +11,13 @@
         return _view;
     };
 
+    bingo.rootView = function () {
+        /// <summary>
+        /// 根view
+        /// </summary>
+        return bingo.view();
+    };
+
     //view==提供视图==================
     var _viewClass = bingo.view.viewClass = bingo.Class(bingo.linkToDom.LinkToDomClass, function () {
 
@@ -73,6 +80,8 @@
                 /// <param name="jqSelector">可选， 默认取得view所在的dom node</param>
                 return $([]);
             },
+            //如果准备好了?
+            $isReady: true,
             $update: function () {
                 /// <summary>
                 /// 同步数据

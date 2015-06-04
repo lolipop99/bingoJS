@@ -142,6 +142,10 @@
         }, 5000);
         $view.forItemClick = function (item, item1) { console.log(item, item1); };
 
+        $view.onReady(function () {
+            $view.forList([]);
+            $view.forList(null);
+        });
     });
 
 })(bingo, window.jQuery);

@@ -11,7 +11,6 @@ bingo.factory('$timeout', ['$view', function ($view) {
     return function (callback, time) {
         return $view.$timeout(function () {
             callback && callback();
-            $view.$update();
         }, time);
     };
 }]);

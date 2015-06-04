@@ -31,10 +31,15 @@ bingo.using('service/userService');
             }];
         });
 
-        bingo.action('form1', function ($view,$aaa, $bbb, userService) {
+        bingo.action('form1', function ($view, $aaa, $bbb, userService) {
+
+            console.dir(this);
 
             console.log('form1', $aaa, $bbb, $view, userService);
             $view.title = 'form1';
+            $view.$timeout(function () {
+                $view.title = 'form1 next';
+            }, 1000);
             $view.onDispose(function () {
                 console.log('dispose form1');
             });

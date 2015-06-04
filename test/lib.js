@@ -2,7 +2,7 @@
 (function (bingo, $) {
 
     var _mvcTest = window.mvcTest = {
-        reportView: function () {
+        reportView: function (view) {
 
             var reportViewIn = function (views, list) {
                 bingo.each(views, function () {
@@ -38,10 +38,10 @@
 
             var list = [];
             var rootView = bingo.rootView();
-            reportViewIn([rootView], list);
+            reportViewIn([view||rootView], list);
             console.log(list);
         },
-        reportViewJson: function () {
+        reportViewJson: function (view) {
 
             var reportViewIn = function (views, list) {
                 bingo.each(views, function () {
@@ -107,7 +107,7 @@
 
             var list = [];
             var rootView = bingo.rootView();
-            reportViewIn([rootView], list);
+            reportViewIn([view||rootView], list);
             console.log(JSON.stringify(list));
         }
     };

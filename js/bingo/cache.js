@@ -1,6 +1,6 @@
 ﻿
 (function (bingo) {
-    //version 1.0.0
+    //version 1.1.0
     "use strict";
 
     bingo.cacheToObject = function (obj) {
@@ -57,7 +57,7 @@
                     if (item)
                         return item;
                     else {
-                        var contextFn = this.context()
+                        var contextFn = this.context();
                         if (bingo.isFunction(contextFn)) {
                             return _add(this, key, contextFn(), this.max());
                         }
@@ -81,7 +81,7 @@
                     item.value = value;
                 else {
                     var key = this.key();
-                    key && _add(this, key, value, this.max())
+                    key && _add(this, key, value, this.max());
                 }
                 return this;
             },
@@ -91,7 +91,7 @@
             },
             clear: function () {
                 var key = this.key();
-                key && _remove(this, key);
+                this.has() && _remove(this, key);
                 return this;
             },
             clearAll: function () {

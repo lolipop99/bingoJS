@@ -1,6 +1,5 @@
 ﻿
 (function (bingo) {
-
     bingo.cacheToObject = function (obj) {
         /// <summary>
         /// 缓存到obj, bingo.cache(obj).key('bbbb').context(function(){return '2';}).max(2).get();

@@ -96,7 +96,7 @@
                     });
                 }
 
-                var ret = fn.apply(owner, injectParams) || {};
+                var ret = fn.apply(fn.$owner || owner, injectParams) || {};
                 !isFirst && (injectObj[name] = ret);
 
                 return ret;
@@ -149,6 +149,7 @@
             var list = bingo.clone(p, false);
             fn = p.$fn = list.pop();
             fn.$injects = list;
+            fn.$owner = p.$owner;
         } else if (bingo.isFunction(p)) {
             fn = p;
             var s = fn.toString();

@@ -10,6 +10,14 @@ describe('mvc - ' + helper.versionString, function () {
     //    song = new Song();
     //});
 
+    $(function () {
+        bingo.rootView().onReady(function () {
+            console.log('bingo.rootView().onReady');
+        }).onReadyAll(function () {
+            console.log('bingo.rootView().onReadyAll');
+        });
+    });
+
 
     it('list with', function () {
 
@@ -474,6 +482,7 @@ describe('mvc - ' + helper.versionString, function () {
                         expect(str2).toEqual(str1);
                         expect(co._datas.length).toEqual(2);//2个缓存
 
+                        console.log(cacheObj);
                     });
                 });
 
@@ -845,6 +854,60 @@ describe('mvc - ' + helper.versionString, function () {
         });//end bingo.compile 分析
 
     });//end bingo.compile
+
+    describe('bingo.bind ======>', function () {
+
+        it('$bindContext', function () {
+            var jo = $('<div></div>');
+
+            var html = '<div bg-action><span aaa="title"></span></div>';
+            bingo.compile().fromHtml(html).action(function ($view, $node, $bindContext) {
+
+                $view.title = 'aaaaa';
+
+                var bind = $bindContext('title+"3333"');
+                var val = bind.$results();
+                expect(val).toEqual($view.title + '3333');
+
+                bind = $bindContext('title');
+                val = bind.$results();
+                expect(val).toEqual($view.title);
+                val = bind.$value();
+                expect(val).toEqual($view.title);
+                bind.$value('11111')
+                expect($view.title).toEqual('11111');
+                
+            }).appendTo(jo).compile();
+
+            jo.remove();
+
+        });
+
+        it('$nodeContext', function () {
+            var jo = $('<div></div>');
+
+            var html = '<div bg-action><span testbind="title"></span></div>';
+            bingo.compile().fromHtml(html).action(function ($view, $node, $bindContext, $nodeContext) {
+
+                $view.title = 'aaaaa';
+
+                var node = $view.$getNode('span')[0];
+                var nodeBind = $nodeContext(node);
+
+                var attr = nodeBind.$getAttr('testbind');
+                val = attr.$value();
+                expect(val).toEqual('aaaaa');
+                val = attr.$results();
+                expect(val).toEqual('aaaaa');
+                expect($view.title).toEqual(val);
+
+            }).appendTo(jo).compile();
+
+            jo.remove();
+
+        });
+
+    });
 
 });
 

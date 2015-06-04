@@ -54,7 +54,7 @@
                     attr.owner = null;
                     return this;
                 }
-            }
+            };
         } else {
             fn = function (value) {
                 var p = _getProp(this);
@@ -64,10 +64,10 @@
                     p[name] = value;
                     return this;
                 }
-            }
+            };
         }
         return fn;
-    }, _getProp = function (obj) { return obj._bg_prop_ || (obj._bg_prop_ = {}) };
+    }, _getProp = function (obj) { return obj._bg_prop_ || (obj._bg_prop_ = {}); };
 
     //bingo.Class=============================================
     var _NewObject_define_String = "NewObject_define";//让对象现实时， 不初始化(Initialization)
@@ -262,7 +262,7 @@
                     if (n != '__events__') {//不复制事件
                         item = this[n];
                         if (bingo.isVariable(item))
-                            obj[n](item())
+                            obj[n](item());
                         else if (bingo.isClassObject(item)) {
                             obj[n] = item.clone();
                         }

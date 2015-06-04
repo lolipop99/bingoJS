@@ -150,8 +150,11 @@
                 /// <param name="p">可以是function, ajax, ajaxSync</param>
                 return this;
             },
-            //计数加一
-            addCount: function () {
+            addCount: function (n) {
+                /// <summary>
+                /// 添加计数
+                /// </summary>
+                /// <param name="n">可选， 默认1</param>
                 return this;
             },
             //计数减一, 计数为0时, 解决所有

@@ -10,12 +10,15 @@
         /// <param name="jqSelector"></param>
         var jo = $(jqSelector);
         if (jo.size() == 0)
-            return null
+            return null;
         else {
             var viewnode = _viewnodeClass.getViewnode(jo[0]);
             return viewnode ? viewnode.view() : null;
         }
     };
+
+    var _rootView = null;
+    bingo.rootView = function () { return _rootView; };
 
     //view==提供视图==================
     var _viewClass = bingo.view.viewClass = bingo.Class(bingo.linkToDom.LinkToDomClass, function () {
@@ -81,10 +84,9 @@
                     }
                 });
             },
-            _isReady_: false,
+            $isReady: false,
             _sendReady: function () {
-                if (this._isReady_) return;
-                this._isReady_ = true;
+                this._sendReady = bingo.noop;
                 var $this = this;
                 bingo.ajaxSyncAll(function () {
 
@@ -93,6 +95,7 @@
                 }, this).success(function () {
                     //所有$axaj加载成功
                     $this.end('_ready_');
+                    $this.$isReady = true;
                     $this._decReadyParentDep();
                     $this.$update();
                 });
@@ -166,7 +169,7 @@
             },
             $update: function () { return this.$publish(); },
             $updateAsync: function () {
-                if (this._isReady_ === true) {
+                if (this.$isReady === true) {
                     this.$observer().publishAsync();
                 }
                 return this;
@@ -188,7 +191,7 @@
                 };
             },
             $publish: function () {
-                if (this._isReady_ === true) {
+                if (this.$isReady) {
                     this.$observer().publish();
                 }
                 return this;
@@ -218,7 +221,7 @@
                 return setTimeout(function () {
                     if (!$this.isDisposed) {
                         callback && callback();
-                        $this._decReadyDep();
+                        $this.$updateAsync()._decReadyDep();
                     }
                 }, time || 1);
             }
@@ -453,7 +456,7 @@
 
             this._withData = withData || (parentViewnode && parentViewnode.getWithData());
 
-            this.view(view).node(node)._setParent(parentViewnode)
+            this.view(view).node(node)._setParent(parentViewnode);
 
             this.onDispose(function () {
 
@@ -513,8 +516,8 @@
                 var link = command.link;
                 if (link) {
                     bingo.factory(link).viewnodeAttr(this).widthData(this.getWithData()).inject();
-                    this._init();
                 }
+                this._init();
             },
             $subs: function (p, p1, deep) {
                 if (arguments.length == 1) {
@@ -558,12 +561,12 @@
             },
             $initResults: function (p) {
                 return this.$init(bingo.proxy(this, function () {
-                    return this.$results()
+                    return this.$results();
                 }), p);
             },
             $initValue: function (p) {
                 return this.$init(bingo.proxy(this, function () {
-                    return this.$value()
+                    return this.$value();
                 }), p);
             }
         });
@@ -605,7 +608,7 @@
 
         this.Static({
             //_regex: /(?!\{\{\:)\{\{([^}]+?)\}\}/gi,
-            _regex: /\{\{([^}]+?)\}\}/gi,
+            _regex: /\{\{(.+?)\}\}/gi,
             _regexRead: /^\s*:\s*/,
             hasTag: function (text) {
                 this._regex.lastIndex = 0;
@@ -664,7 +667,7 @@
                         tagList.push(item);
 
                         var value = context.$results();
-                        return item.value = bingo.toStr(value);
+                        return item.value = bingo.toStr(bingo.variableOf(value));
                     });
                     _serValue(s); s = '';
 
@@ -746,6 +749,7 @@
 
             this.attrName = attrName && attrName.toLowerCase();
             this.attrValue = attrValue;
+            //console.log('attrValue', attrValue);
 
             this.onDispose(function () {
                 //var viewnode = this.viewnode();
@@ -762,5 +766,15 @@
             });
         });
     });
+
+
+    (function () {
+        var node = document.documentElement,
+        _viewST = bingo.view;
+
+        _rootView = _viewST.viewClass.NewObject(node);
+
+        _viewST.viewnodeClass.NewObject(_rootView, node, null, null);
+    })();
 
 })(bingo);

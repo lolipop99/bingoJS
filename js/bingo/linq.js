@@ -168,10 +168,10 @@
 
                 if (!bingo.isFunction(fn)) {
                     if (arguments.length == 0)
-                        fn = function (item) { return item; }
+                        fn = function (item) { return item; };
                     else {
                         var prop = fn;
-                        fn = function (item) { return item[prop]; }
+                        fn = function (item) { return item[prop]; };
                     }
                 }
                 this.each(function (item, index) {
@@ -212,7 +212,7 @@
                 this._doLastWhere();
                 if (!bingo.isFunction(callback)) {
                     var prop = callback;
-                    callback = function (item) { return prop ? item[prop] : item; }
+                    callback = function (item) { return prop ? item[prop] : item; };
                 }
                 var n = 0;
                 this.each(function (item, index) {
@@ -224,7 +224,7 @@
                 this._doLastWhere();
                 if (!bingo.isFunction(callback)) {
                     var prop = callback;
-                    callback = function (item) { return prop ? item[prop] : item; }
+                    callback = function (item) { return prop ? item[prop] : item; };
                 }
                 var n = 0;
                 this.each(function (item, index) {
@@ -272,7 +272,7 @@
                 itemName || (itemName = 'items');
                 if (!bingo.isFunction(callback)) {
                     var prop = callback;
-                    callback = function (item) { return item[prop]; }
+                    callback = function (item) { return item[prop]; };
                 }
 
                 this._doLastWhere();

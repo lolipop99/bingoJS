@@ -3,27 +3,21 @@
     //version 1.1.0
     "use strict";
 
-    var _rootView = null,
-        _command = {};
-
     bingo.extend({
         compile: function (view) {
             /// <summary>
-            /// 
+            /// 编译， 当前view
             /// </summary>
             /// <param name="view">可选， 默认bingo.rootView()</param>
-            return _compileClass.NewObject().view(view || _rootView);
+            return _compileClass.NewObject().view(view || bingo.rootView());
         },
         tmpl: function (url, view) {
             /// <summary>
-            /// 
+            /// 模板管理
             /// </summary>
             /// <param name="url"></param>
-            /// <param name="view">可选</param>
+            /// <param name="view">可选， 当前view</param>
             return _tmplClass.NewObject().url(url).view(view);
-        },
-        rootView: function () {
-            return bingo.view();
         }
     });
 
@@ -50,7 +44,6 @@
         });
 
         this.Prop({
-            action: null,
             fromUrl: '',
             //withData作用空间, 单个时用
             withData: null,
@@ -167,6 +160,7 @@
 
             this._withData = withData;
             this.view(view).node(node);
+            this.content = content;
             this.$prop(content);
 
         });

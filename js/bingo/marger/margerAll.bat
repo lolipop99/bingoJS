@@ -2,6 +2,16 @@
 call marger.bat
 call marger.mv.bat
 
-m.exe ./build/bingo.core.js ./build/bingo.mv.js ./build/bingo.mv.factory.js ./build/bingo.mv.command.js  ./build/bingo.js
+cd build
 
-m.exe ./build/bingo.core-vsdoc.js ./build/bingo.mv-vsdoc.js ./build/bingo.mv.factory-vsdoc.js ./build/bingo-vsdoc.js
+copy /b /y bingo.core.js + bingo.mv.js + bingo.mv.factory.js + bingo.mv.command.js + bingo.mv.filter.js bingo.js
+
+copy /b /y bingo.core-vsdoc.js + bingo.mv-vsdoc.js + bingo.mv.factory-vsdoc.js bingo-vsdoc.js
+
+
+del /q bingo.core.js bingo.mv.js bingo.mv.factory.js bingo.mv.command.js bingo.mv.filter.js
+del /q bingo.core-vsdoc.js bingo.mv-vsdoc.js bingo.mv.factory-vsdoc.js
+
+cd ..
+
+pause

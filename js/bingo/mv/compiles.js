@@ -3,11 +3,9 @@
     //version 1.1.0
     "use strict";
 
-    var _rootView = null;
-
     bingo.extend({
         compile: function (view) {
-            return _compileClass.NewObject().view(view || _rootView);
+            return _compileClass.NewObject().view(view || bingo.rootView());
         },
         tmpl: function (url, view) {
             /// <summary>
@@ -17,18 +15,12 @@
             /// <param name="view">可选</param>
             return _tmplClass.NewObject(url).view(view);
         },
-        rootView: function () { return _rootView; },
         _startMvc: function () {
+
             //等待动态加载js完成后开始
             bingo.using(function () {
-                var node = document.documentElement,
-                    _viewST = bingo.view;
-
-                _rootView = _viewST.viewClass.NewObject(node);
-
-                _viewST.viewnodeClass.NewObject(_rootView, node, null, null);
-
-                bingo.compile(_rootView).fromNode(node).compile();
+                var view = bingo.rootView(), node = view.$node();
+                bingo.compile(view).fromNode(node).compile();
             });
         }
     });
@@ -195,7 +187,7 @@
         isTmplWithdataNode: function (node) {
             if (node.nodeType == 8) {
                 var nodeValue = node.nodeValue;
-                return (!bingo.isNullEmpty(nodeValue) && nodeValue.indexOf('bingo_cmpwith_') >= 0)
+                return (!bingo.isNullEmpty(nodeValue) && nodeValue.indexOf('bingo_cmpwith_') >= 0);
             }
             return false;
         },
@@ -252,6 +244,8 @@
                         //if (aName.indexOf('frame')>=0) console.log(aName);
                         if (command) {
                             command = _compiles._makeCommand(command, p.view, node);
+                            if (command.compilePre)
+                                aVal = aT && aT.nodeValue;//compilePre有可能重写attr
                             replace = command.replace;
                             include = command.include;
                             tmpl = command.tmpl;
@@ -390,6 +384,7 @@
 
     var _tmplClass = bingo.compile.tmplClass = bingo.Class(bingo.ajax.ajaxClass, function () {
 
+
         var _base = bingo.ajax.ajaxClass.prototype;
 
         var _cache = {};
@@ -405,7 +400,7 @@
                     view && !view.isDisposed && view._decReadyDep();
                 })
                 .cacheTo(this.cacheTo() || _cache)
-                .cacheMax(this.cacheMax() <= 0 ? 100 : this.cacheMax())
+                .cacheMax(this.cacheMax() <= 0 ? 350 : this.cacheMax())
                 .dataType('text');
             },
             'get': function () {
@@ -471,7 +466,7 @@
             },
             _compile: function () {
                 var jo = this._jo;
-                var parentNode = this._parentNode || (jo && jo.parent()[0])
+                var parentNode = this._parentNode || (jo && jo.parent()[0]);
                 if (!parentNode) return;
 
                 //如果没有传parentNode认为是已经在document树里
@@ -505,8 +500,15 @@
                     _traverseChildrenNodes(jo, parentViewnode, view, withDataList, action);
                     //console.timeEnd(timeId);
 
+                    ////删除TmplWithdataNode
+                    //withDataList && withDataList.length > 0 && (jo = _compiles.checkTmplWithdataNode(jo));
+                    //if (!isInDoc) {
+                    //    jo.appendTo(parentNode);
+                    //}
+
+                    //删除TmplWithdataNode
+                    withDataList && withDataList.length > 0 && (jo = _compiles.checkTmplWithdataNode(jo));
                     if (!isInDoc) {
-                        withDataList && withDataList.length > 0 && (jo = _compiles.checkTmplWithdataNode(jo));
                         jo.appendTo(parentNode);
                     }
 
@@ -690,7 +692,7 @@
 
             this._withData = withData;
             this.view(view).node(node);
-            this._content = content;
+            this.content = content;
             this.$prop(content);
 
         });
@@ -708,6 +710,7 @@
             $getAttr: function (name) {
                 if (!bingo.hasOwnProp(this._attrs, name)) {
                     var attrTemp = this.node().attributes[name];
+                    attrTemp = attrTemp ? attrTemp.nodeValue : '';
                     this._attrs[name] = !bingo.isNullEmpty(attrTemp)
                         ? _bindClass.NewObject(this.view(), this.node(), attrTemp, this.withData())
                         : null;

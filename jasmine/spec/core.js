@@ -1024,6 +1024,11 @@ describe('bingo.core - ' + helper.versionString, function () {
             expect(bingo.route('myTest111/sys/user/1')).toEqual('src/test/sys_user_test.js?id=1');
 
 
+            var context1 = bingo.routeContext('view/demo/user/list$aa:1?bb=22&c=333');
+            expect(context1.params.aa).toEqual('1');
+            expect(context1.params.bb).toEqual('22');
+            expect(context1.params.c).toEqual('333');
+
         });
 
     });//end bingo.route

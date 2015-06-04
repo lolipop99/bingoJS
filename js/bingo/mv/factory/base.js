@@ -8,11 +8,11 @@
     });
 
     bingo.factory('$compile', ['$view', function (view) {
-        return function () { return bingo.compile(view); }
+        return function () { return bingo.compile(view); };
     }]);
 
     bingo.factory('$tmpl', ['$view', function (view) {
-        return function (url) { return bingo.tmpl(url, view); }
+        return function (url) { return bingo.tmpl(url, view); };
     }]);
 
     bingo.factory('$node', ['node', function (node) {
@@ -99,11 +99,10 @@
 
 
     //绑定内容解释器, var bind = $bindContext('user.id == "1"', document.body); var val = bind.getContext();
-    bingo.factory('$bindContext', ['$view', '$viewnode', '$attr', '$withData', function ($view, $viewnode, $attr, $withData) {
-        //$viewnode, $attr, $withData为可选
+    bingo.factory('$bindContext', ['$view', 'node', '$withData', function ($view, pNode, $withData) {
         return function (bindText, node, withData) {
             //node, withData可选
-            node || (node = $viewnode && $viewnode.node);
+            node || (node = pNode);
             withData || (withData = $withData);
             return bingo.compile.bind($view, node, bindText, withData);
         };
@@ -111,11 +110,10 @@
 
 
     //绑定属性解释器
-    bingo.factory('$nodeContext', ['$view', '$viewnode', '$withData', function ($view, $viewnode, $withData) {
-        //$viewnode, $attr, $withData为可选
+    bingo.factory('$nodeContext', ['$view', 'node', '$withData', function ($view, pNode, $withData) {
         return function (node, withData) {
             //withData可选
-            node || (node = $viewnode && $viewnode.node);
+            node || (node = pNode);
             withData || (withData = $withData);
             return bingo.compile.bindNode($view, node, withData);
         };
@@ -164,7 +162,7 @@
                     };
                 }
             };
-        }
+        };
     }]);
 
 
@@ -193,9 +191,11 @@
         //根据url生成routeContext;
         var routeContext = bingo.routeContext('view/system/user/list');
             返回结果==>{
+                name:'view',
                 url:'view/system/user/list',
                 toUrl:'modules/system/views/user/list.html',
-                params:{ module: 'system', controller: 'user', action: 'list' }
+                params:{ module: 'system', controller: 'user', action: 'list' },
+                actionContext:function(){...}
             }
     */
     bingo.factory('$routeContext', function () {
@@ -204,6 +204,28 @@
         };
     });
 
+    var _cacheObj = {},
+        _cacheM = bingo.cacheToObject(_cacheObj).max(100);
+    bingo.factory('$cache', function () {
+        return _cacheM;
+    });
+
+
+    //参数，使用后，自动清除
+    var _paramObj = {},
+        _paramM = bingo.cacheToObject(_paramObj).max(20);
+    bingo.factory('$param', ['$view', function ($view) {
+        return function (key, value) {
+            _paramM.key(key);
+            if (arguments.length <= 1) {
+                var p = _paramM.get();
+                _paramM.clear();
+                return p;
+            }
+            else
+                _paramM.set(value);
+        };
+    }]);
 
 
 

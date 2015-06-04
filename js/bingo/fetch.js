@@ -82,7 +82,7 @@
                         node = undefined;
                         callback = null;
                     }
-                }, 5);
+                }, 1);
             }
         };
 
@@ -101,7 +101,6 @@
             /// <param name="callback"></param>
             /// <param name="charset"></param>
             return fetch(url, callback, id, charset);
-            callback = null;
         }
     });
 

@@ -19,6 +19,7 @@ bingo.command('bg-route', function () {
             /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
             /// <param name="$node" value="$([])"></param>
 
+            //只要最后一次，防止连续点击链接
             var _last = null;
             $location.onChange(function (url) {
                 _last && _last.stop();
@@ -29,8 +30,12 @@ bingo.command('bg-route', function () {
                     $node.trigger('bg-route-loaded', [url]);
                 }).compile();
             });
-            var url = $attr.$prop();
-            url && $location.href(url);
+
+            $attr.$init(function () {
+                return $attr.$prop();
+            }, function (value) {
+                value && $location.href(value);
+            });
         }]
     };
 });

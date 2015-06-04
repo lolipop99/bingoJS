@@ -14,6 +14,7 @@
         return {
             contentOrg: content,
             content: content,
+            contentFT: content,
             filter: function (value) { return value; }
         };
     };

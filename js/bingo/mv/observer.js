@@ -14,7 +14,7 @@
                     var val;
                     if (_isFn) {
                         //如果是function
-                        if (disposer && disposer.isDisposed) { setTimeout(function () { item.dispose(); }); return; }
+                        //if (disposer && disposer.isDisposed) { setTimeout(function () { item.dispose(); }); return; }
                         val = context.call(item);
                     }
                     else {
@@ -28,15 +28,22 @@
                 _oldValue = _getValue();
             var item = {
                 _callback: callback,
-                dispose: function () { bingo.clearObject(this); }
+                dispose: _dispose
             };
 
             if (bingo.isVariable(_oldValue)) {
                 item.check = _varSub;
+                item.isChange = false;
+                var view = watch._view;
+                item.varo = _oldValue;
                 _oldValue.$subs(function (value) {
-                    callback.call(item, value);
-                    watch.publishAsync();
-                }, disposer);
+                    if (!view.$isReady) //处理$isReady
+                        item.isChange = true;
+                    else {
+                        callback.call(item, value);
+                        watch.publishAsync();
+                    }
+                }, disposer || view);
             } else {
                 item.check = function () {
                     if (disposer && disposer.isDisposed) { item.dispose && item.dispose(); return; }
@@ -53,8 +60,14 @@
             return item;
         };
 
-        var _varSub = function () { return false; };
-
+        var _varSub = function () {
+            if (this.isChange) {
+                //处理view.$isReady问题
+                this.varo.$setChange();
+                this.isChange = false;
+            }
+            return false;
+        }, _dispose = function () { bingo.clearObject(this); };
 
         this.Define({
             unSubscribe: function (callback) {

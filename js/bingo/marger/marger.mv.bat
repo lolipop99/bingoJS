@@ -1,11 +1,38 @@
-m.exe ../mv/linkToDom.js ../mv/module.js ../mv/factory.js ../mv/model.js ../mv/observer.js ../mv/ajax.js ../mv/compiles.js ../mv/view.js ../mv/filter.js ../mv/render.js  ./build/bingo.mv.js
+cd ../mv
 
-m.exe ../mv/linkToDom-vsdoc.js ../mv/module-vsdoc.js ../mv/factory-vsdoc.js ../mv/model-vsdoc.js ../mv/observer-vsdoc.js ../mv/ajax-vsdoc.js ../mv/compiles-vsdoc.js ../mv/view-vsdoc.js ../mv/filter-vsdoc.js ../mv/render-vsdoc.js  ./build/bingo.mv-vsdoc.js
+copy /b /y linkToDom.js + module.js + factory.js + model.js + observer.js + ajax.js + compiles.js + view.js + filter.js + render.js bingo.mv.js
 
-m.exe ../mv/factory/base.js ../mv/factory/linq.js ../mv/factory/location.js ../mv/factory/render.js ../mv/factory/timeout.js ./build/bingo.mv.factory.js
+copy /b /y linkToDom-vsdoc.js + module-vsdoc.js + factory-vsdoc.js + model-vsdoc.js + observer-vsdoc.js + ajax-vsdoc.js + compiles-vsdoc.js + view-vsdoc.js + filter-vsdoc.js + render-vsdoc.js bingo.mv-vsdoc.js
 
-m.exe ../mv/factory/base.js ../mv/factory/linq.js ../mv/factory/location.js ../mv/factory/render.js ../mv/factory/timeout.js ./build/bingo.mv.factory-vsdoc.js
+move bingo.mv.js ../marger/build/bingo.mv.js
+move bingo.mv-vsdoc.js ../marger/build/bingo.mv-vsdoc.js
 
-m.exe ../mv/command/action.js ../mv/command/attrs.js ../mv/command/event.js ../mv/command/for.js ../mv/command/route.js ../mv/command/html.js ../mv/command/if.js ../mv/command/include.js ../mv/command/model.js ../mv/command/styles.js ../mv/command/text.js ../mv/command/include.js ../mv/filter/base.js  ./build/bingo.mv.command.js
+cd factory
 
-pause
+copy /b /y base.js + linq.js + location.js + render.js + timeout.js bingo.mv.factory.js
+
+copy /b /y base.js + linq.js + location.js + render.js + timeout.js bingo.mv.factory-vsdoc.js
+
+move bingo.mv.factory.js ../../marger/build/bingo.mv.factory.js
+move bingo.mv.factory-vsdoc.js ../../marger/build/bingo.mv.factory-vsdoc.js
+
+cd ..
+
+cd command
+
+copy /b /y action.js + attrs.js + event.js + for.js + route.js + html.js + if.js + include.js + model.js + styles.js + text.js + include.js bingo.mv.command.js
+
+move bingo.mv.command.js ../../marger/build/bingo.mv.command.js
+
+cd ..
+
+cd filter
+
+copy /b /y base.js  bingo.mv.filter.js
+
+move bingo.mv.filter.js ../../marger/build/bingo.mv.filter.js
+
+cd ..
+
+cd ../marger
+
