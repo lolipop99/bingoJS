@@ -131,6 +131,13 @@
             fn.$owner = { conroller: this, module: this.module };
             return this._actions[name] = fn;
         }
+    }, _actionMDFn = function (name, fn) {
+        if (arguments.length == 1)
+            return this._actions[name];
+        else {
+            fn.$owner = { conroller: null, module: this };
+            return this._actions[name] = fn;
+        }
     }, _getLastModule = function () {
         return _lastModule || _defaultModule;
     }, _getModuleValue = function (prop, name) {
@@ -155,6 +162,7 @@
                 module = _module[name] = {
                     name: name, _services: {}, _controllers: {},
                     _commands: {}, _filters: {}, _factorys: {},
+                    _actions: {}, action: _actionMDFn,
                     service: _serviceFn,
                     controller: _controllerFn,
                     command: _commandFn,
@@ -180,8 +188,13 @@
         action: function (name, fn) {
             if (bingo.isFunction(name) || bingo.isArray(name)) {
                 return name;
-            } else
+            } else if (_lastContoller)
                 return _lastContoller.action.apply(_lastContoller, arguments);
+            else {
+                var lm = _lastModule || _defaultModule;
+                return lm.action.apply(lm, arguments);
+            }
+
         },
         command: function (name, fn) {
             var lm = _lastModule || _defaultModule;

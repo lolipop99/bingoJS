@@ -122,7 +122,7 @@
         if (params) {
             var moduleIn = bingo.module(params.module);
             var controller = moduleIn ? moduleIn.controller(params.controller) : null;
-            var action = controller ? controller.action(params.action) : null;
+            var action = controller ? controller.action(params.action) : (moduleIn ? moduleIn.action(params.action) : null);
             context.module = moduleIn;
             context.controller = controller;
             context.action = action;
@@ -178,11 +178,17 @@
         },
         add: function (name, context) {
             var route = this.getRuote(name);
-            if (route) { route.context = context; return; }
-            this.datas.push({
-                name: name,
-                context: context
-            });
+            if (bingo.isUndefined(context.priority))
+                context.priority = 100;
+            if (route) {
+                route.context = context;
+            } else {
+                this.datas.push({
+                    name: name,
+                    context: context
+                });
+            }
+            this.datas = bingo.linq(this.datas).sort(function (item1, item2) { return item2.context.priority - item1.context.priority; }).toArray()
         },
         getRuote: function (name) {
             var item = null;
@@ -237,6 +243,8 @@
 
     //设置view资源路由
     bingo.route('view', {
+        //优先级, 越大越前, 默认100
+        priority: 100,
         //路由url, 如: view/system/user/list
         url: 'view/{module}/{controller}/{action}',
         //路由到目标url, 生成:modules/system/views/user/list.html
@@ -250,6 +258,24 @@
         url: 'action/{module}/{controller}/{action}',
         toUrl: 'modules/{module}/controllers/{controller}.js',
         defaultValue: { module: 'system', controller: 'user', action: 'list' }
+    });
+
+
+    //设置viewS资源路由
+    bingo.route('viewS', {
+        //路由url, 如: view/system/user/list
+        url: 'view/{module}/{action}',
+        //路由到目标url, 生成:modules/system/views/user/list.html
+        toUrl: 'modules/{module}/{action}.html',
+        //变量默认值, 框架提供内部用的变量: module, controller, action, service
+        defaultValue: { module: 'system', action: 'list' }
+    });
+
+    //设置actionS资源路由
+    bingo.route('actionS', {
+        url: 'action/{module}/{action}',
+        toUrl: 'modules/{module}/scripts/{action}.js',
+        defaultValue: { module: 'system', action: 'list' }
     });
 
     //设置service资源路由
