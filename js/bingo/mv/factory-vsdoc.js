@@ -124,7 +124,7 @@
                     var factorys = moduleI.factory();
                     var factorys2 = moduleDefault == moduleI ? null : moduleDefault.factory();
 
-                    fn = factorys[name] || (factorys2 && factorys2[name]) || moduleI.service(name);
+                    fn = factorys[name] || (factorys2 && factorys2[name]) || moduleI.service(name) || (moduleDefault == moduleI ? null : moduleDefault.service(name));
 
                     //var factorys = moduleI.factory();
                     //fn = factorys[name] || moduleI.service(name);

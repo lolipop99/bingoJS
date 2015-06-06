@@ -1923,11 +1923,17 @@
         },
         add: function (name, context) {
             var route = this.getRuote(name);
-            if (route) { route.context = context; return; }
-            this.datas.push({
-                name: name,
-                context: context
-            });
+            if (bingo.isUndefined(context.priority))
+                context.priority = 100;
+            if (route) {
+                route.context = context;
+            } else {
+                this.datas.push({
+                    name: name,
+                    context: context
+                });
+            }
+            this.datas = bingo.linq(this.datas).sort(function (item1, item2) { return item2.context.priority - item1.context.priority; }).toArray()
         },
         getRuote: function (name) {
             var item = null;
@@ -1982,6 +1988,8 @@
 
     //设置view资源路由
     bingo.route('view', {
+        //优先级, 越大越前, 默认100
+        priority: 100,
         //路由url, 如: view/system/user/list
         url: 'view/{module}/{controller}/{action}',
         //路由到目标url, 生成:modules/system/views/user/list.html
@@ -1997,10 +2005,35 @@
         defaultValue: { module: 'system', controller: 'user', action: 'list' }
     });
 
+
+    //设置viewS资源路由
+    bingo.route('viewS', {
+        //路由url, 如: view/system/user/list
+        url: 'view/{module}/{action}',
+        //路由到目标url, 生成:modules/system/views/user/list.html
+        toUrl: 'modules/{module}/{action}.html',
+        //变量默认值, 框架提供内部用的变量: module, controller, action, service
+        defaultValue: { module: 'system', action: 'list' }
+    });
+
+    //设置actionS资源路由
+    bingo.route('actionS', {
+        url: 'action/{module}/{action}',
+        toUrl: 'modules/{module}/scripts/{action}.js',
+        defaultValue: { module: 'system', action: 'list' }
+    });
+
     //设置service资源路由
     bingo.route('service', {
         url: 'service/{module}/{service}',
         toUrl: 'modules/{module}/services/{service}.js',
+        defaultValue: { module: 'system', service: 'user' }
+    });
+
+    //设置service资源路由
+    bingo.route('serviceS', {
+        url: 'service/{service}',
+        toUrl: 'modules/services/{service}.js',
         defaultValue: { module: 'system', service: 'user' }
     });
 
@@ -2537,7 +2570,7 @@
                     var factorys = moduleI.factory();
                     var factorys2 = moduleDefault == moduleI ? null : moduleDefault.factory();
 
-                    fn = factorys[name] || (factorys2 && factorys2[name]) || moduleI.service(name);
+                    fn = factorys[name] || (factorys2 && factorys2[name]) || moduleI.service(name) || (moduleDefault == moduleI ? null : moduleDefault.service(name));
                     fn && (fn = _makeInjectAttrs(fn));
                     //_makeInjectAttrs
                 }
@@ -6211,6 +6244,14 @@ bingo.command('bg-include', function () {
 
     }];
 });
+﻿
+bingo.command('bg-node', function () {
+
+    return ['$attr', 'node', function ($attr, node) {
+        $attr.$value(node);
+    }];
+});
+
 ﻿
 (function (bingo) {
     //version 1.1.0

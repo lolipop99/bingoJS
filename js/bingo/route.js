@@ -285,6 +285,13 @@
         defaultValue: { module: 'system', service: 'user' }
     });
 
+    //设置service资源路由
+    bingo.route('serviceS', {
+        url: 'service/{service}',
+        toUrl: 'modules/services/{service}.js',
+        defaultValue: { module: 'system', service: 'user' }
+    });
+
     ////设置src资源路由
     //bingo.route('srv', {
     //    url: 'srv?/{module}/{service}',
