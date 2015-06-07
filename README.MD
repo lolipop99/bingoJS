@@ -2,6 +2,8 @@
 
 库包下载：[https://git.oschina.net/bingoJS/bingoJS/blob/master/bingo.zip?dir=0&filepath=bingo.zip](https://git.oschina.net/bingoJS/bingoJS/blob/master/bingo.zip)
 
+三种开发规划方式(开发模式)Demo:[https://git.oschina.net/bingoJS/bingoJS/tree/master/demo](https://git.oschina.net/bingoJS/bingoJS/tree/master/demo)
+
 ####1、关于bingoJS
 bingoJS是一个前端MV*开发框架，可能还不算一套完整的框架要做的事。但还会不但完善，引入前端框架所需基础要素，目前已经支持模块化开发、按需动态加载、完善的双向绑定、依赖注入等；让你在开发只关注业务代码的实现。
 
