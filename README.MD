@@ -4,7 +4,7 @@
 
 三种开发规划方式(开发模式)Demo:[https://git.oschina.net/bingoJS/bingoJS/tree/master/demo](https://git.oschina.net/bingoJS/bingoJS/tree/master/demo)
 
-更新记录:[https://git.oschina.net/bingoJS/bingoJS/blob/master/history.MD](https://git.oschina.net/bingoJS/bingoJS/blob/master/history.MD)
+更新记录:[http://git.oschina.net/bingoJS/bingoJS/blob/master/history.md](http://git.oschina.net/bingoJS/bingoJS/blob/master/history.md)
 
 ####1、关于bingoJS
 bingoJS是一个前端MV*开发框架， 提供了前端框架所需基础要素，目前已经支持模块化开发、按需动态加载、完善的双向绑定、依赖注入等；让你在开发只关注业务代码的实现。
