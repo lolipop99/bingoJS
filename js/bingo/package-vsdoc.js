@@ -12,9 +12,8 @@
     bingo.usingMap("%bingoextend%/equals1.js", ["%bingoextend%/equals.js", "%jsother%/JSON.js"]);
 */
 
-(function () {
+(function (bingo) {
     //version 1.0.1
-    var bingo = window.bingo;
 
     bingo.extend({
         using: function (jsFiles, callback, priority) {
@@ -98,4 +97,4 @@
 
 
 
-})();
+})(bingo);

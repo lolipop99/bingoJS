@@ -17,9 +17,9 @@
 
     var _makeAutoIdTemp = 0, _makeAutoIdTempPointer = 0;
 
-    var bingo = window.bingo = window.bingo = {
+    var bingo = window.bingo = {
         //主版本号.子版本号.修正版本号
-        version: { major: 1, minor: 1, rev: 604, toString: function () { return [this.major, this.minor, this.rev].join('.'); } },
+        version: { major: 1, minor: 1, rev: 615, toString: function () { return [this.major, this.minor, this.rev].join('.'); } },
         isDebug: false,
         prdtVersion: '',
         stringEmpty: stringEmpty,
@@ -201,6 +201,7 @@
             for (var i = 0, len = arguments.length; i < len; i++) {
                 obj = arguments[i];
                 bingo.eachProp(obj, function (item, n) {
+                    if (item && item.$clearAuto === true) bingo.clearObject(item);
                     obj[n] = null;
                 });
             }
@@ -233,6 +234,11 @@
             return function () { return fn && fn.apply(owner, arguments); };
         }
     };
+
+    //解决多版共存问题
+    var majVer = ['bingoV' + bingo.version.major].join(''),
+        minorVer = [majVer, bingo.version.minor].join('_');
+    window[majVer] = window[minorVer] = bingo;
 
     var _clone = {
         isCloneObject: function (obj) {

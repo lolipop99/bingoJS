@@ -1,5 +1,0 @@
-#SmartHosts START
-
-#Google Services START
-
-#SmartHosts END

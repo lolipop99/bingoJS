@@ -65,6 +65,12 @@
 
     var _ajaxClass = bingo.ajax.ajaxClass = bingo.Class(_ajaxBaseClass, function () {
 
+        this.Static({
+            holdServer: function (ajax, response, isSuccess, xhr) {
+                return [response, isSuccess, xhr];
+            }
+        });
+
         var _disposeEnd = function (servers) {
             if (!servers.isDisposed) return;
             setTimeout(function () {
@@ -77,6 +83,9 @@
             var view = servers.view();
             if (servers.isDisposed || (view && view.isDisposed)) { _disposeEnd(servers); return; }
             var datas = bingo.clone(servers.param() || {});
+
+            var holdServer = servers.holdServer() || _ajaxClass.holdServer,
+                deferred = servers.deferred();
 
             var cacheMG = null,
                 url = servers.url();
@@ -91,16 +100,36 @@
                     if (servers.async())
                         setTimeout(function () {
                             if (!servers.isDisposed) {
-                                (view && view.isDisposed) || servers.deferred().resolveWith(servers, [cacheData]);
+                                (view && view.isDisposed) || deferred.resolveWith(servers, [cacheData]);
                                 _disposeEnd(servers);
                             }
                         });
                     else
-                        servers.deferred().resolveWith(servers, [cacheData]);
+                        deferred.resolveWith(servers, [cacheData]);
                     _disposeEnd(servers);
                     return;
                 }
             }
+
+            var _hold = function (response, status, xhr) {
+                if (!servers.isDisposed) {
+                    if (!(view && view.isDisposed)) {
+                        try {
+                            var hL = holdServer(servers, response, status, xhr);
+                            response = hL[0], status = hL[1], xhr = hL[2];
+
+                            if (status === true) {
+                                cacheMG && cacheMG.set(response)
+                                deferred.resolveWith(servers, [response]);
+                            } else
+                                deferred.rejectWith(servers, [response, false, xhr]);
+                        } catch (e) {
+                            bingo.trace(e);
+                        }
+                    }
+                    _disposeEnd(servers);
+                }
+            };
 
             $.ajax({
                 type: type,
@@ -109,33 +138,11 @@
                 async: servers.async(),
                 cache: false,
                 dataType: servers.dataType(),
-                success: function (response) {
-                    cacheMG && cacheMG.set(response);
-
-                    if (!servers.isDisposed) {
-                        if (!(view && view.isDisposed)) {
-                            try {
-                                var _dtd = servers.deferred();
-                                _dtd.resolveWith(servers, [response]);
-                            } catch (e) {
-                                bingo.trace(e);
-                            }
-                        }
-                        _disposeEnd(servers);
-                    }
+                success: function (response, status, xhr) {
+                    _hold(response, true, xhr);
                 },
-                error: function (xhr, textStatus, errorThrown) {
-                    if (!servers.isDisposed) {
-                        if (!(view && view.isDisposed)) {
-                            try {
-                                var _dtd = servers.deferred();
-                                _dtd.rejectWith(servers, [xhr, textStatus, errorThrown]);
-                            } catch (e) {
-                                bingo.trace(e);
-                            }
-                        }
-                        _disposeEnd(servers);
-                    }
+                error: function (xhr, status, response) {
+                    _hold(response, false, xhr);
                 }
             });
         };
@@ -149,7 +156,8 @@
             cacheTo: null,
             //缓存数量， 小于等于0, 不限制数据
             cacheMax: -1,
-            cacheQurey:true
+            cacheQurey: true,
+            holdServer:null
         });
 
         this.Define({

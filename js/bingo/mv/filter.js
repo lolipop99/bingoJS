@@ -55,7 +55,7 @@
             var retScript = ['return ', attT, ';'].join('');
 
             try {
-                return ca[cn] = (new Function('$view', '$node', '$withData', [
+                return ca[cn] = (new Function('$view', '$node', '$withData', 'bingo', [
                     'with ($view) {',
                         //如果有withData, 影响性能
                         withData ? 'with ($withData) {' : '',
@@ -68,7 +68,7 @@
                                 '}',
                             '};',
                         withData ? '}' : '',
-                    '}'].join('')))(view, node, withData);
+                    '}'].join('')))(view, node, withData, bingo);//bingo(多版本共存)
             } catch (e) {
                 bingo.trace(e);
                 return ca[cn] = function () { return attrValue; };

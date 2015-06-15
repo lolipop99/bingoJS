@@ -1,5 +1,5 @@
 ﻿
-(function () {
+(function (bingo) {
 
     bingo.datavalue = function (data, name, value) {
         /// <signature>
@@ -19,4 +19,4 @@
         /// </signature>
     };
 
-})();
+})(bingo);

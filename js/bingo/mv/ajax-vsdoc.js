@@ -81,6 +81,13 @@
 
     var _ajaxClass = bingo.ajax.ajaxClass = bingo.Class(_ajaxBaseClass, function () {
 
+        this.Static({
+            //hold server数据, function(ajax, response, isSuccess, xhr){return return [response, isSuccess, xhr];}
+            holdServer: function (ajax, response, isSuccess, xhr) {
+                return [response, isSuccess, xhr];
+            }
+        });
+
         this.Prop({
             url: 'a.html',
             //是否异步, 默认true
@@ -94,7 +101,9 @@
             //缓存数量， 小于等于0, 不限制数据, 默认-1
             cacheMax: -1,
             //是否包函url query部分作为key 缓存数据, 默认true
-            cacheQurey:true
+            cacheQurey: true,
+            //hold server数据, function(response, isSuccess, xhr){return return [response, isSuccess, xhr];}
+            holdServer: null
         });
 
         this.Define({
@@ -121,6 +130,10 @@
                 this.get = bingo.noop;
                 return this;
             }
+        });
+
+        this.Initialization(function (url) {
+            this.url(url);
         });
 
     });

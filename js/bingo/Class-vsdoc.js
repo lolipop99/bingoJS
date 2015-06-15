@@ -234,6 +234,10 @@
             /// </summary>
             /// <param name="obj"></param>
             _extendDefine(define, obj);
+            var def = new define();
+            bingo.eachProp(obj, function (item) {
+                bingo.isFunction(item) && intellisenseSetCallContext(item, def);
+            });
         };
         define.NewObject = function () {
             /// <summary>

@@ -360,6 +360,11 @@ window.intellisenseLogMessage = function (msg) {
         }
     };
 
+    //解决多版共存问题
+    var majVer = ['bingoV' + bingo.version.major].join(''),
+        minorVer = [majVer, bingo.version.minor].join('_');
+    window[majVer] = window[minorVer] = bingo;
+
     var _clone = {
         isCloneObject: function (obj) {
             return bingo.isObject(obj) && !bingo.isWindow(obj) && !bingo.isElement(obj);
@@ -407,7 +412,7 @@ window.intellisenseLogMessage = function (msg) {
 
 })();
 ﻿
-(function () {
+(function (bingo) {
 
     bingo.datavalue = function (data, name, value) {
         /// <signature>
@@ -427,7 +432,7 @@ window.intellisenseLogMessage = function (msg) {
         /// </signature>
     };
 
-})();
+})(bingo);
 ﻿
 (function (bingo) {
 
@@ -945,6 +950,10 @@ window.intellisenseLogMessage = function (msg) {
             /// </summary>
             /// <param name="obj"></param>
             _extendDefine(define, obj);
+            var def = new define();
+            bingo.eachProp(obj, function (item) {
+                bingo.isFunction(item) && intellisenseSetCallContext(item, def);
+            });
         };
         define.NewObject = function () {
             /// <summary>
@@ -1462,9 +1471,8 @@ window.intellisenseLogMessage = function (msg) {
     bingo.usingMap("%bingoextend%/equals1.js", ["%bingoextend%/equals.js", "%jsother%/JSON.js"]);
 */
 
-(function () {
+(function (bingo) {
     //version 1.0.1
-    var bingo = window.bingo;
 
     bingo.extend({
         using: function (jsFiles, callback, priority) {
@@ -1548,7 +1556,7 @@ window.intellisenseLogMessage = function (msg) {
 
 
 
-})();
+})(bingo);
 ﻿
 (function (bingo) {
 
@@ -2045,126 +2053,6 @@ window.intellisenseLogMessage = function (msg) {
     var _defaultModule = bingo.module('_$defaultModule$_');
 
 })(bingo);
-
-//(function (bingo) {
-//    //version 1.0.1
-//    "use strict";
-
-
-//    var _serviceFn = function (name, fn) {
-//        /// <summary>
-//        /// 定义或获取service
-//        /// </summary>
-//        /// <param name="name">定义或获取service名称</param>
-//        /// <param name="fn" type="function(injects..)">可选</param>
-//        if (fn) bingo.factory(fn);
-//        if (arguments.length == 1)
-//            return this._services[name];
-//        else
-//            return this._services[name] = fn;
-//    }, _controllerFn = function (name, fn) {
-//        /// <summary>
-//        /// 定义或获取controller
-//        /// </summary>
-//        /// <param name="name">定义或获取controller名称</param>
-//        /// <param name="fn" type="function()">可选</param>
-//        var conroller = this._controllers[name];
-//        if (!conroller)
-//            conroller = this._controllers[name] = {
-//                name: name, _actions: {},
-//                action: _actionFn
-//            };
-//        if (bingo.isFunction(fn)) {
-//            var hasLM = _lastModule
-//            !hasLM && (_lastModule = this);
-//            _lastContoller = conroller;
-//            fn();
-//            _lastContoller = null;
-//            !hasLM && (_lastModule = null);
-//        }
-//        return conroller;
-//    }, _actionFn = function (name, fn) {
-//        /// <summary>
-//        /// 定义或获取action
-//        /// </summary>
-//        /// <param name="name">定义或获取action名称</param>
-//        /// <param name="fn" type="function(injects..)">可选</param>
-//        if (fn) {
-//            _lastModule = this.module;
-//            bingo.factory(fn);
-//        }
-//        if (arguments.length == 1)
-//            return this._actions[name];
-//        else
-//            return this._actions[name] = fn;
-//    };
-
-//    var _module = {}, _lastModule = null, _lastContoller = null;
-//    bingo.extend({
-//        _lastModule: function () { return _lastModule; },
-//        module: function (name, fn) {
-//            /// <summary>
-//            /// 定义或获取模块
-//            /// </summary>
-//            /// <param name="name">定义或获取模块名称</param>
-//            /// <param name="fn" type="function(injects..)">可选</param>
-//            if (this.isNullEmpty(name)) return null;
-//            //if (arguments.length == 1)
-//            //    return _module[name];
-
-//            var module = _module[name];
-
-//            if (!module) {
-//                module = _module[name] = {
-//                    name: name, _services: {}, _controllers: {},
-//                    service: _serviceFn,
-//                    controller: _controllerFn
-//                };
-//                module._controllers.module = module;
-//            }
-
-//            if (bingo.isFunction(fn)) {
-//                _lastModule = module;
-//                fn();
-//                _lastModule = null;
-//            }
-//            return module;
-//        },
-//        service: function (name, fn) {
-//            /// <summary>
-//            /// 定义服务service
-//            /// </summary>
-//            /// <param name="name">定义服务service名称</param>
-//            /// <param name="fn" type="function(injects..)"></param>
-//            if (this.isNullEmpty(name) || !_lastModule) return null;
-//            _lastModule.service.apply(_lastModule, arguments);
-//        },
-//        controller: function (name, fn) {
-//            /// <summary>
-//            /// 定义服务service
-//            /// </summary>
-//            /// <param name="name">定义服务service名称</param>
-//            /// <param name="fn" type="function(injects..)"></param>
-//            if (this.isNullEmpty(name) || !_lastModule) return;
-//            _lastModule.controller.apply(_lastModule, arguments);
-//        },
-//        action: function (name, fn) {
-//            /// <summary>
-//            /// 定义action
-//            /// </summary>
-//            /// <param name="name">定义action名称</param>
-//            /// <param name="fn" type="function(injects..)"></param>
-//            if (this.isNullEmpty(name) || !_lastContoller) return;
-//            if (name) {
-//                intellisenseLogMessage('_lastModule', !bingo.isNull(_lastModule));
-//                //_lastModule = _lastContoller.module;
-//                bingo.factory(fn);
-//            }
-//            _lastContoller.action.apply(_lastContoller, arguments);
-//        }
-//    });
-
-//})(bingo);
 ﻿
 (function (bingo) {
     //version 1.1.0
@@ -2368,22 +2256,23 @@ window.intellisenseLogMessage = function (msg) {
     var _toObject = function (obj) {
         var o = obj || {}, val;
         bingo.eachProp(this, function (item, n) {
-            if (bingo.isVariable(item)) {
-                val = item();
-                if (bingo.isVariable(o[n]))
-                    o[n](val);
-                else
-                    o[n] = val;
-            }
+            if (bingo.isVariable(o[n]))
+                o[n](item);
+            else if (n != '_isModel_' && n != 'toObject' && n != 'fromObject')
+                o[n] = bingo.variableOf(item);
         });
         return o;
 
-    }, _formObject = function (obj) {
+    }, _fromObject = function (obj, extend) {
         if (obj) {
             bingo.eachProp(obj, bingo.proxy(this, function (item, n) {
-                item = this[n];
-                if (bingo.isVariable(item)) {
-                    item(obj[n]);
+                if (n in this) {
+                    if (bingo.isVariable(this[n])) {
+                        this[n](item);
+                    } else
+                        this[n] = bingo.variableOf(item);
+                } else if (extend) {
+                    this[n] = bingo.variable(item);
                 }
             }));
         }
@@ -2404,7 +2293,7 @@ window.intellisenseLogMessage = function (msg) {
 
         o._isModel_ = _isModel_;
         o.toObject = _toObject;
-        o.formObject = _formObject;
+        o.fromObject = _fromObject;
         return o;
     };
 
@@ -2560,6 +2449,13 @@ window.intellisenseLogMessage = function (msg) {
 
     var _ajaxClass = bingo.ajax.ajaxClass = bingo.Class(_ajaxBaseClass, function () {
 
+        this.Static({
+            //hold server数据, function(ajax, response, isSuccess, xhr){return return [response, isSuccess, xhr];}
+            holdServer: function (ajax, response, isSuccess, xhr) {
+                return [response, isSuccess, xhr];
+            }
+        });
+
         this.Prop({
             url: 'a.html',
             //是否异步, 默认true
@@ -2573,7 +2469,9 @@ window.intellisenseLogMessage = function (msg) {
             //缓存数量， 小于等于0, 不限制数据, 默认-1
             cacheMax: -1,
             //是否包函url query部分作为key 缓存数据, 默认true
-            cacheQurey:true
+            cacheQurey: true,
+            //hold server数据, function(response, isSuccess, xhr){return return [response, isSuccess, xhr];}
+            holdServer: null
         });
 
         this.Define({
@@ -2600,6 +2498,10 @@ window.intellisenseLogMessage = function (msg) {
                 this.get = bingo.noop;
                 return this;
             }
+        });
+
+        this.Initialization(function (url) {
+            this.url(url);
         });
 
     });
@@ -2736,8 +2638,8 @@ window.intellisenseLogMessage = function (msg) {
                 /// <summary>
                 /// 
                 /// </summary>
-                /// <param name="callback" value='function(node)'></param>
-                callback && intellisenseSetCallContext(callback, this, [document.body]);
+                /// <param name="callback" type='function(jNode)'></param>
+                callback && intellisenseSetCallContext(callback, this, [$([])]);
                 return this;
             },
             //编译前执行， function
@@ -2745,8 +2647,8 @@ window.intellisenseLogMessage = function (msg) {
                 /// <summary>
                 /// 
                 /// </summary>
-                /// <param name="callback" value='function(node)'></param>
-                callback && intellisenseSetCallContext(callback, this, [document.body]);
+                /// <param name="callback" type='function(jNode)'></param>
+                callback && intellisenseSetCallContext(callback, this, [$([])]);
                 return this;
             },
             compile: function () {
@@ -3597,96 +3499,149 @@ window.intellisenseLogMessage = function (msg) {
 
 })(bingo, window.jQuery);
 ﻿
-bingo.factory('$linq', function () {
-    return function (p) { return bingo.linq(p); };
-});
+(function (bingo) {
+
+    bingo.factory('$linq', function () {
+        return function (p) { return bingo.linq(p); };
+    });
+
+})(bingo);
 ﻿
-/*
-    与bg-route同用, 取bg-route的url等相关
-    $location.href('view/system/user/list');
-    var href = $location.href();
-    var params = $location.params();
+(function (bingo) {
 
+    /*
+        与bg-route同用, 取bg-route的url等相关
+        $location.href('view/system/user/list');
+        var href = $location.href();
+        var params = $location.params();
+    
+    
+        $location.onChange请参考bg-route定义
+    */
+    var _routeCmdName = 'bg-route',
+        _dataKey = '_bg_location_';
 
-    $location.onChange请参考bg-route定义
-*/
+    //bingo.location('main') 或 bingo.location($('#id')) 或 bingo.location(docuemnt.body)
 
-bingo.location = function (node) {
-    /// <param name="node">可选， 默认document.documentElement</param>
-    var $node = $(node || document.documentElement);
-    var frameName = 'bg-route';
-    return {
-        params: function () {
-            var url = this.href();
-            var routeContext = bingo.routeContext(url);
-            return routeContext.params;
-        },
-        href: function (url, target) {
-            var frame = bingo.isNullEmpty(target) ? this.frame() : $('[' + frameName + '][' + frameName + '-name="' + target + '"]');
-            if (frame.size() > 0) {
-                frame.attr(frameName, url).trigger(frameName + '-change', [url]);
-            }
-        },
-        reload: function (target) {
-            this.href(this.url(), target);
-        },
-        onChange: function (callback) {
-            callback && this.frame().on(frameName + '-change', function (e, url) {
-                callback.call(this, url);
-            });
-        },
-        onLoaded: function (callback) {
-            callback && this.frame().on(frameName + '-loaded', function (e, url) {
-                callback.call(this, url);
-            });
-        },
-        frame: function () { return $node.closest('[' + frameName + ']'); },
-        url: function () {
-            var frame = this.frame();
-            if (frame.size() > 0)
-                return frame.attr(frameName);
-            else
-                return window.location + '';
-        },
-        toString: function () {
-            return this.url();
+    bingo.location = function (p) {
+        /// <param name="p">可选，可以是字串、jquery和dom node, 默认document.documentElement</param>
+        bingo.isString(p) && (p = '[bg-name="' + p + '"]');
+        var $node = $(p || document.documentElement).closest('[' + _routeCmdName + ']');
+        var o = $node.data(_dataKey);
+        if (!o) {
+            o = _locationClass.NewObject().ownerNode($node).linkToDom($node);
+            $node.data(_dataKey, o);
         }
+        return o;
     };
-};
 
-bingo.factory('$location', ['node', function (node) {
+    var _locationClass = bingo.location.Class = bingo.Class(bingo.linkToDom.LinkToDomClass, function () {
 
-    return bingo.location(node);
+        this.Prop({
+            ownerNode: null
+        });
 
-}]);
+        this.Define({
+            queryParams: function () {
+                var url = this.url();
+                var routeContext = bingo.routeContext(url);
+                return routeContext.params;
+            },
+            href: function (url, target) {
+                var frame = bingo.isNullEmpty(target) ? this.ownerNode() : $('[' + _routeCmdName + '][bg-name="' + target + '"]');
+                if (frame.size() > 0) {
+                    frame.attr(_routeCmdName, url).trigger('bg-location-change', [url]);
+                }
+                return this;
+            },
+            reload: function (target) {
+                return this.href(this.url(), target);
+            },
+            onChange: function (callback) {
+                callback && this.ownerNode().on('bg-location-change', function (e, url) {
+                    callback.call(this, url);
+                });
+            },
+            onLoaded: function (callback) {
+                callback && this.ownerNode().on('bg-location-loaded', function (e, url) {
+                    callback.call(this, url);
+                });
+            },
+            url: function () {
+                if (this.ownerNode().size() > 0)
+                    return this.ownerNode().attr(_routeCmdName);
+                else
+                    return window.location + '';
+            },
+            toString: function () {
+                return this.url();
+            },
+            views: function () {
+                return bingo.view(this.ownerNode()).$children;
+            },
+            close: function () {
+                if (this.trigger('onCloseBefore') === false) return;
+                this.ownerNode().remove();
+            },
+            onCloseBefore: function (callback) {
+                return this.on('onCloseBefore', callback);
+            },
+            onClosed: function (callback) {
+                if (this.__closeed !== true) {
+                    this.__closeed = true;
+                    this.onDispose(function () {
+                        this.trigger('onClosed');
+                    });
+                }
+                return this.on('onClosed', callback);
+            }
+        });
+
+    });
+
+    bingo.factory('$location', ['node', function (node) {
+
+        return bingo.location(node);
+
+    }]);
+
+})(bingo);
 ﻿
-/*
-    var rd = $render('<div>{{: item.name}}</div>');
-    var html = rd.render([{name:'张三'}, {name:'李四'}], 'item');
-    var html2 = rd.render([{name:'王五'}, {name:'小六'}], 'item');
-*/
-bingo.factory('$render', ['$view', 'node', function ($view, node) {
-    /// <param name="$view" value="bingo.view.viewClass()"></param>
-    /// <param name="node" value="document.body"></param>
+(function (bingo) {
 
-    return function (tmpl) {
-        return bingo.render(tmpl, $view, node);
-    };
+    /*
+        var rd = $render('<div>{{: item.name}}</div>');
+        var html = rd.render([{name:'张三'}, {name:'李四'}], 'item');
+        var html2 = rd.render([{name:'王五'}, {name:'小六'}], 'item');
+    */
+    bingo.factory('$render', ['$view', 'node', function ($view, node) {
+        /// <param name="$view" value="bingo.view.viewClass()"></param>
+        /// <param name="node" value="document.body"></param>
 
-}]);
+        return function (tmpl) {
+            return bingo.render(tmpl, $view, node);
+        };
+
+    }]);
+
+})(bingo);
 ﻿
-/*
-    //异步执行内容, 并自动同步view数据
-    $timeout(function(){
-	    $view.title = '我的标题';
-    }, 100);
-*/
-bingo.factory('$timeout', ['$view', function ($view) {
-    /// <param name="$view" value="bingo.view.viewClass()"></param>
+(function (bingo) {
 
-    return function (callback, time) {
-        return $view.$timeout(function () {
-            callback && callback();
-        }, time);
-    };
-}]);
+    /*
+        //异步执行内容, 并自动同步view数据
+        $timeout(function(){
+            $view.title = '我的标题';
+        }, 100);
+    */
+    bingo.factory('$timeout', ['$view', function ($view) {
+        /// <param name="$view" value="bingo.view.viewClass()"></param>
+
+        return function (callback, time) {
+            return $view.$timeout(function () {
+                callback && callback();
+            }, time);
+        };
+    }]);
+
+})(bingo);

@@ -92,7 +92,7 @@
 
                     $this.end('_initdata_');
 
-                }, this).success(function () {
+                }, this).alway(function () {
                     //所有$axaj加载成功
                     $this.end('_ready_');
                     $this.$isReady = true;

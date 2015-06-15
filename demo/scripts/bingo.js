@@ -19,9 +19,9 @@
 
     var _makeAutoIdTemp = 0, _makeAutoIdTempPointer = 0;
 
-    var bingo = window.bingo = window.bingo = {
+    var bingo = window.bingo = {
         //主版本号.子版本号.修正版本号
-        version: { major: 1, minor: 1, rev: 604, toString: function () { return [this.major, this.minor, this.rev].join('.'); } },
+        version: { major: 1, minor: 1, rev: 615, toString: function () { return [this.major, this.minor, this.rev].join('.'); } },
         isDebug: false,
         prdtVersion: '',
         stringEmpty: stringEmpty,
@@ -203,6 +203,7 @@
             for (var i = 0, len = arguments.length; i < len; i++) {
                 obj = arguments[i];
                 bingo.eachProp(obj, function (item, n) {
+                    if (item && item.$clearAuto === true) bingo.clearObject(item);
                     obj[n] = null;
                 });
             }
@@ -235,6 +236,11 @@
             return function () { return fn && fn.apply(owner, arguments); };
         }
     };
+
+    //解决多版共存问题
+    var majVer = ['bingoV' + bingo.version.major].join(''),
+        minorVer = [majVer, bingo.version.minor].join('_');
+    window[majVer] = window[minorVer] = bingo;
 
     var _clone = {
         isCloneObject: function (obj) {
@@ -2636,22 +2642,23 @@
     var _toObject = function (obj) {
         var o = obj || {}, val;
         bingo.eachProp(this, function (item, n) {
-            if (bingo.isVariable(item)) {
-                val = item();
-                if (bingo.isVariable(o[n]))
-                    o[n](val);
-                else
-                    o[n] = val;
-            }
+            if (bingo.isVariable(o[n]))
+                o[n](item);
+            else if (n != '_isModel_' && n != 'toObject' && n != 'fromObject')
+                o[n] = bingo.variableOf(item);
         });
         return o;
 
-    }, _formObject = function (obj) {
+    }, _fromObject = function (obj, extend) {
         if (obj) {
             bingo.eachProp(obj, bingo.proxy(this, function (item, n) {
-                item = this[n];
-                if (bingo.isVariable(item)) {
-                    item(obj[n]);
+                if (n in this) {
+                    if (bingo.isVariable(this[n])) {
+                        this[n](item);
+                    } else
+                        this[n] = bingo.variableOf(item);
+                } else if (extend) {
+                    this[n] = bingo.variable(item);
                 }
             }));
         }
@@ -2666,7 +2673,7 @@
 
         o._isModel_ = _isModel_;
         o.toObject = _toObject;
-        o.formObject = _formObject;
+        o.fromObject = _fromObject;
         return o;
     };
 
@@ -2718,6 +2725,7 @@
                     }
                 }, disposer || view);
             } else {
+                if (deep) _oldValue = bingo.clone(_oldValue);
                 item.check = function () {
                     if (disposer && disposer.isDisposed) { item.dispose && item.dispose(); return; }
                     var newValue = _getValue(),
@@ -2913,6 +2921,12 @@
 
     var _ajaxClass = bingo.ajax.ajaxClass = bingo.Class(_ajaxBaseClass, function () {
 
+        this.Static({
+            holdServer: function (ajax, response, isSuccess, xhr) {
+                return [response, isSuccess, xhr];
+            }
+        });
+
         var _disposeEnd = function (servers) {
             if (!servers.isDisposed) return;
             setTimeout(function () {
@@ -2925,6 +2939,9 @@
             var view = servers.view();
             if (servers.isDisposed || (view && view.isDisposed)) { _disposeEnd(servers); return; }
             var datas = bingo.clone(servers.param() || {});
+
+            var holdServer = servers.holdServer() || _ajaxClass.holdServer,
+                deferred = servers.deferred();
 
             var cacheMG = null,
                 url = servers.url();
@@ -2939,16 +2956,36 @@
                     if (servers.async())
                         setTimeout(function () {
                             if (!servers.isDisposed) {
-                                (view && view.isDisposed) || servers.deferred().resolveWith(servers, [cacheData]);
+                                (view && view.isDisposed) || deferred.resolveWith(servers, [cacheData]);
                                 _disposeEnd(servers);
                             }
                         });
                     else
-                        servers.deferred().resolveWith(servers, [cacheData]);
+                        deferred.resolveWith(servers, [cacheData]);
                     _disposeEnd(servers);
                     return;
                 }
             }
+
+            var _hold = function (response, status, xhr) {
+                if (!servers.isDisposed) {
+                    if (!(view && view.isDisposed)) {
+                        try {
+                            var hL = holdServer(servers, response, status, xhr);
+                            response = hL[0], status = hL[1], xhr = hL[2];
+
+                            if (status === true) {
+                                cacheMG && cacheMG.set(response)
+                                deferred.resolveWith(servers, [response]);
+                            } else
+                                deferred.rejectWith(servers, [response, false, xhr]);
+                        } catch (e) {
+                            bingo.trace(e);
+                        }
+                    }
+                    _disposeEnd(servers);
+                }
+            };
 
             $.ajax({
                 type: type,
@@ -2957,33 +2994,11 @@
                 async: servers.async(),
                 cache: false,
                 dataType: servers.dataType(),
-                success: function (response) {
-                    cacheMG && cacheMG.set(response);
-
-                    if (!servers.isDisposed) {
-                        if (!(view && view.isDisposed)) {
-                            try {
-                                var _dtd = servers.deferred();
-                                _dtd.resolveWith(servers, [response]);
-                            } catch (e) {
-                                bingo.trace(e);
-                            }
-                        }
-                        _disposeEnd(servers);
-                    }
+                success: function (response, status, xhr) {
+                    _hold(response, true, xhr);
                 },
-                error: function (xhr, textStatus, errorThrown) {
-                    if (!servers.isDisposed) {
-                        if (!(view && view.isDisposed)) {
-                            try {
-                                var _dtd = servers.deferred();
-                                _dtd.rejectWith(servers, [xhr, textStatus, errorThrown]);
-                            } catch (e) {
-                                bingo.trace(e);
-                            }
-                        }
-                        _disposeEnd(servers);
-                    }
+                error: function (xhr, status, response) {
+                    _hold(response, false, xhr);
                 }
             });
         };
@@ -2997,7 +3012,8 @@
             cacheTo: null,
             //缓存数量， 小于等于0, 不限制数据
             cacheMax: -1,
-            cacheQurey:true
+            cacheQurey: true,
+            holdServer:null
         });
 
         this.Define({
@@ -3129,7 +3145,7 @@
 
     bingo.extend({
         compile: function (view) {
-            return _compileClass.NewObject().view(view || bingo.rootView());
+            return _compileClass.NewObject().view(view);
         },
         tmpl: function (url, view) {
             /// <summary>
@@ -3338,13 +3354,13 @@
             var tagName = node.tagName, command = null;
             if (bingo.isNullEmpty(tagName)) return false;
             tagName = tagName.toLowerCase();
-            if (tagName == 'script') return false;
 
             var moduleI = p.view.$getModule();
 
             command = moduleI.command(tagName);
             var attrList = [], textTagList = [], compileChild = true;
             var tmpl = null, replace = false, include = false, isNewView = false;
+            if (tagName == 'script') compileChild = false;
             if (command) {
                 //node
                 command = _compiles._makeCommand(command, p.view, node);
@@ -3352,7 +3368,7 @@
                 include = command.include;
                 tmpl = command.tmpl;
                 isNewView = command.view;
-                compileChild = command.compileChild;
+                (!compileChild) || (compileChild = command.compileChild);
                 attrList.push({ aName: tagName, aVal: null, type: 'node', command: command });
             } else {
                 //attr
@@ -3597,7 +3613,7 @@
                 var isInDoc = !this._parentNode;
 
                 try {
-                    this.trigger('compilePre', [jo[0]]);
+                    this.trigger('compilePre', [jo]);
 
                     var view = this.view(),
                         parentViewnode = bingo.view.viewnodeClass.getViewnode(parentNode);
@@ -3641,7 +3657,7 @@
                 } catch (e) {
                     bingo.trace(e);
                 }
-                this.trigger('compiled', [jo[0]]);
+                this.trigger('compiled', [jo]);
                 this.dispose();
             },
             compile: function () {
@@ -3688,7 +3704,7 @@
                 var attrValue = attr.$prop();
                 try {
                     var retScript = [hasReturn ? 'return ' : '', attrValue, ';'].join('');
-                    return contextCache[cacheName] = (new Function('$view', '$node', '$withData', [
+                    return contextCache[cacheName] = (new Function('$view', '$node', '$withData', 'bingo', [
                         'with ($view) {',
                             //如果有withData, 影响性能
                             withData ? 'with ($withData) {' : '',
@@ -3703,7 +3719,7 @@
                                     '}'].join('') : retScript,
                                 '});',
                             withData ? '}' : '',
-                        '}'].join('')))(view, node, withData);
+                        '}'].join('')))(view, node, withData, bingo);//bingo(多版本共存)
                 } catch (e) {
                     console.warn(['evalScriptContextFun: ', retScript].join(''));
                     bingo.trace(e);
@@ -4002,7 +4018,7 @@
 
                     $this.end('_initdata_');
 
-                }, this).success(function () {
+                }, this).alway(function () {
                     //所有$axaj加载成功
                     $this.end('_ready_');
                     $this.$isReady = true;
@@ -4745,7 +4761,7 @@
             var retScript = ['return ', attT, ';'].join('');
 
             try {
-                return ca[cn] = (new Function('$view', '$node', '$withData', [
+                return ca[cn] = (new Function('$view', '$node', '$withData', 'bingo', [
                     'with ($view) {',
                         //如果有withData, 影响性能
                         withData ? 'with ($withData) {' : '',
@@ -4758,7 +4774,7 @@
                                 '}',
                             '};',
                         withData ? '}' : '',
-                    '}'].join('')))(view, node, withData);
+                    '}'].join('')))(view, node, withData, bingo);//bingo(多版本共存)
             } catch (e) {
                 bingo.trace(e);
                 return ca[cn] = function () { return attrValue; };
@@ -4956,7 +4972,10 @@
                     item.content = flt.content;
                     item.flt = flt;
                 }
-                item.fn = _getScriptContextFn(item.content, view);
+
+                var fnTT = _getScriptContextFn(item.content, view)
+
+                item.fn = function (view, data) { return fnTT(view, data, bingo); };//bingo(多版本共存)
             }
         }
         return item;
@@ -4965,7 +4984,7 @@
         if (bingo.isNullEmpty(evaltext)) return bingo.noop;
         var oldEvalText = evaltext;
         try {
-            return new Function('$view, $data', [
+            return new Function('$view', '$data', 'bingo', [
                 'try {',
                     view ? 'with ($view) {' : '',
                         'with ($data) {',
@@ -5510,290 +5529,354 @@
 
 })(bingo, window.jQuery);
 ﻿
-bingo.factory('$linq', function () {
-    return function (p) { return bingo.linq(p); };
-});
+(function (bingo) {
+
+    bingo.factory('$linq', function () {
+        return function (p) { return bingo.linq(p); };
+    });
+
+})(bingo);
 ﻿
-/*
-    与bg-route同用, 取bg-route的url等相关
-    $location.href('view/system/user/list');
-    var href = $location.href();
-    var params = $location.params();
+(function (bingo) {
 
+    /*
+        与bg-route同用, 取bg-route的url等相关
+        $location.href('view/system/user/list');
+        var href = $location.href();
+        var params = $location.params();
+    
+    
+        $location.onChange请参考bg-route定义
+    */
+    var _routeCmdName = 'bg-route',
+        _dataKey = '_bg_location_';
 
-    $location.onChange请参考bg-route定义
-*/
+    //bingo.location('main') 或 bingo.location($('#id')) 或 bingo.location(docuemnt.body)
 
-bingo.location = function (node) {
-    /// <param name="node">可选， 默认document.documentElement</param>
-    var $node = $(node || document.documentElement);
-    var frameName = 'bg-route';
-    return {
-        params: function () {
-            var url = this.href();
-            var routeContext = bingo.routeContext(url);
-            return routeContext.params;
-        },
-        href: function (url, target) {
-            var frame = bingo.isNullEmpty(target) ? this.frame() : $('[' + frameName + '][' + frameName + '-name="' + target + '"]');
-            if (frame.size() > 0) {
-                frame.attr(frameName, url).trigger(frameName + '-change', [url]);
-            }
-        },
-        reload: function (target) {
-            this.href(this.url(), target);
-        },
-        onChange: function (callback) {
-            callback && this.frame().on(frameName + '-change', function (e, url) {
-                callback.call(this, url);
-            });
-        },
-        onLoaded: function (callback) {
-            callback && this.frame().on(frameName + '-loaded', function (e, url) {
-                callback.call(this, url);
-            });
-        },
-        frame: function () { return $node.closest('[' + frameName + ']'); },
-        url: function () {
-            var frame = this.frame();
-            if (frame.size() > 0)
-                return frame.attr(frameName);
-            else
-                return window.location + '';
-        },
-        toString: function () {
-            return this.url();
+    bingo.location = function (p) {
+        /// <param name="p">可选，可以是字串、jquery和dom node, 默认document.documentElement</param>
+        bingo.isString(p) && (p = '[bg-name="' + p + '"]');
+        var $node = $(p || document.documentElement).closest('[' + _routeCmdName + ']');
+        var o = $node.data(_dataKey);
+        if (!o) {
+            o = _locationClass.NewObject().ownerNode($node).linkToDom($node);
+            $node.data(_dataKey, o);
         }
-    };
-};
-
-bingo.factory('$location', ['node', function (node) {
-
-    return bingo.location(node);
-
-}]);
-﻿
-/*
-    var rd = $render('<div>{{: item.name}}</div>');
-    var html = rd.render([{name:'张三'}, {name:'李四'}], 'item');
-    var html2 = rd.render([{name:'王五'}, {name:'小六'}], 'item');
-*/
-bingo.factory('$render', ['$view', 'node', function ($view, node) {
-    /// <param name="$view" value="bingo.view.viewClass()"></param>
-    /// <param name="node" value="document.body"></param>
-
-    return function (tmpl) {
-        return bingo.render(tmpl, $view, node);
+        return o;
     };
 
-}]);
-﻿
-/*
-    //异步执行内容, 并自动同步view数据
-    $timeout(function(){
-	    $view.title = '我的标题';
-    }, 100);
-*/
-bingo.factory('$timeout', ['$view', function ($view) {
-    /// <param name="$view" value="bingo.view.viewClass()"></param>
+    var _locationClass = bingo.location.Class = bingo.Class(bingo.linkToDom.LinkToDomClass, function () {
 
-    return function (callback, time) {
-        return $view.$timeout(function () {
-            callback && callback();
-        }, time);
-    };
-}]);
-﻿/*
-    使用方法:
-    bg-action="function($view){}"   //直接绑定一个function
-    bg-action="ctrl/system/user"    //绑定到一个url
-*/
-bingo.command('bg-action', function () {
+        this.Prop({
+            ownerNode: null
+        });
 
-    return {
-        //优先级, 越大越前
-        priority: 1000,
-        //模板
-        tmpl: '',
-        //外部模板
-        tmplUrl: '',
-        //是否替换节点, 默认为false
-        replace: false,
-        //是否indclude, 默认为false, 模板内容要包函bg-include
-        include: false,
-        //是否新view, 默认为false
-        view: true,
-        //是否编译子节点, 默认为true
-        compileChild: false,
-        //编译前, 没有$viewnode和$attr注入, 即可以用不依懒$domnode和$attr的所有注入, 如$view/node/$node/$ajax...
-        //如果view == true , 注入的view属于上层, 原因是新view还没解释出来, 还处于分析
-        compilePre: null,
-        //action
-        action: null,
-        //link
-        link: null,
-        //编译, (compilePre编译前-->compile编译-->action初始数据-->link连接command)
-        compile: ['$view', '$compile', '$node', '$attr', function ($view, $compile, $node, $attr) {
-            /// <param name="$view" value="bingo.view.viewClass()"></param>
-            /// <param name="$compile" value="function(){return bingo.compile();}"></param>
-            /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
-            /// <param name="$node" value="$([])"></param>
-
-            var attrVal = $attr.$prop(), val = null;
-            if (!bingo.isNullEmpty(attrVal)) {
-                val = $attr.$results();
-                //如果没有取父域
-                if (!val) val = bingo.datavalue($view.$parentView(), attrVal);
-            }
-
-            if (bingo.isNullEmpty(attrVal)
-                || bingo.isFunction(val) || bingo.isArray(val)) {
-                //如果是function或数组, 直接当action, 或是空值时
-
-                //添加action
-                val && $view.$addAction(val);
-                //编译
-                $compile().fromNode($node[0].childNodes).compile();
-            } else {
-                //使用url方式, 异步加载action, 走mvc开发模式
-                var url = attrVal;
-
+        this.Define({
+            queryParams: function () {
+                var url = this.url();
                 var routeContext = bingo.routeContext(url);
-                var actionContext = routeContext.actionContext();
+                return routeContext.params;
+            },
+            href: function (url, target) {
+                var frame = bingo.isNullEmpty(target) ? this.ownerNode() : $('[' + _routeCmdName + '][bg-name="' + target + '"]');
+                if (frame.size() > 0) {
+                    frame.attr(_routeCmdName, url).trigger('bg-location-change', [url]);
+                }
+                return this;
+            },
+            reload: function (target) {
+                return this.href(this.url(), target);
+            },
+            onChange: function (callback) {
+                callback && this.ownerNode().on('bg-location-change', function (e, url) {
+                    callback.call(this, url);
+                });
+            },
+            onLoaded: function (callback) {
+                callback && this.ownerNode().on('bg-location-loaded', function (e, url) {
+                    callback.call(this, url);
+                });
+            },
+            url: function () {
+                if (this.ownerNode().size() > 0)
+                    return this.ownerNode().attr(_routeCmdName);
+                else
+                    return window.location + '';
+            },
+            toString: function () {
+                return this.url();
+            },
+            views: function () {
+                return bingo.view(this.ownerNode()).$children;
+            },
+            close: function () {
+                if (this.trigger('onCloseBefore') === false) return;
+                this.ownerNode().remove();
+            },
+            onCloseBefore: function (callback) {
+                return this.on('onCloseBefore', callback);
+            },
+            onClosed: function (callback) {
+                if (this.__closeed !== true) {
+                    this.__closeed = true;
+                    this.onDispose(function () {
+                        this.trigger('onClosed');
+                    });
+                }
+                return this.on('onClosed', callback);
+            }
+        });
 
-                if (actionContext.action) {
-                    //如果acion不为空, 即已经定义action
+    });
 
-                    //设置module
-                    $view.$setModule(actionContext.module);
+    bingo.factory('$location', ['node', function (node) {
+
+        return bingo.location(node);
+
+    }]);
+
+})(bingo);
+﻿
+(function (bingo) {
+
+    /*
+        var rd = $render('<div>{{: item.name}}</div>');
+        var html = rd.render([{name:'张三'}, {name:'李四'}], 'item');
+        var html2 = rd.render([{name:'王五'}, {name:'小六'}], 'item');
+    */
+    bingo.factory('$render', ['$view', 'node', function ($view, node) {
+        /// <param name="$view" value="bingo.view.viewClass()"></param>
+        /// <param name="node" value="document.body"></param>
+
+        return function (tmpl) {
+            return bingo.render(tmpl, $view, node);
+        };
+
+    }]);
+
+})(bingo);
+﻿
+(function (bingo) {
+
+    /*
+        //异步执行内容, 并自动同步view数据
+        $timeout(function(){
+            $view.title = '我的标题';
+        }, 100);
+    */
+    bingo.factory('$timeout', ['$view', function ($view) {
+        /// <param name="$view" value="bingo.view.viewClass()"></param>
+
+        return function (callback, time) {
+            return $view.$timeout(function () {
+                callback && callback();
+            }, time);
+        };
+    }]);
+
+})(bingo);
+﻿
+(function (bingo) {
+    /*
+        使用方法:
+        bg-action="function($view){}"   //直接绑定一个function
+        bg-action="ctrl/system/user"    //绑定到一个url
+    */
+    bingo.command('bg-action', function () {
+
+        return {
+            //优先级, 越大越前
+            priority: 1000,
+            //模板
+            tmpl: '',
+            //外部模板
+            tmplUrl: '',
+            //是否替换节点, 默认为false
+            replace: false,
+            //是否indclude, 默认为false, 模板内容要包函bg-include
+            include: false,
+            //是否新view, 默认为false
+            view: true,
+            //是否编译子节点, 默认为true
+            compileChild: false,
+            //编译前, 没有$viewnode和$attr注入, 即可以用不依懒$domnode和$attr的所有注入, 如$view/node/$node/$ajax...
+            //如果view == true , 注入的view属于上层, 原因是新view还没解释出来, 还处于分析
+            compilePre: null,
+            //action
+            action: null,
+            //link
+            link: null,
+            //编译, (compilePre编译前-->compile编译-->action初始数据-->link连接command)
+            compile: ['$view', '$compile', '$node', '$attr', function ($view, $compile, $node, $attr) {
+                /// <param name="$view" value="bingo.view.viewClass()"></param>
+                /// <param name="$compile" value="function(){return bingo.compile();}"></param>
+                /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
+                /// <param name="$node" value="$([])"></param>
+
+                var attrVal = $attr.$prop(), val = null;
+                if (!bingo.isNullEmpty(attrVal)) {
+                    val = $attr.$results();
+                    //如果没有取父域
+                    if (!val) val = bingo.datavalue($view.$parentView(), attrVal);
+                }
+
+                if (bingo.isNullEmpty(attrVal)
+                    || bingo.isFunction(val) || bingo.isArray(val)) {
+                    //如果是function或数组, 直接当action, 或是空值时
+
                     //添加action
-                    $view.$addAction(actionContext.action);
+                    val && $view.$addAction(val);
                     //编译
                     $compile().fromNode($node[0].childNodes).compile();
                 } else {
-                    //如果找不到acion, 加载js
+                    //使用url方式, 异步加载action, 走mvc开发模式
+                    var url = attrVal;
 
-                    //加载js后再断续解释
-                    //$using有同步view启动作用, ready之后， 没有作用
-                    $view.$using(url, function () {
+                    var routeContext = bingo.routeContext(url);
+                    var actionContext = routeContext.actionContext();
 
-                        var actionContext = routeContext.actionContext();
-                        if (actionContext.action) {
-                            //设置module
-                            $view.$setModule(actionContext.module);
-                            //添加action
-                            $view.$addAction(actionContext.action);
-                            //编译
-                            $compile().fromNode($node[0].childNodes).compile();
-                        }
+                    if (actionContext.action) {
+                        //如果acion不为空, 即已经定义action
+
+                        //设置module
+                        $view.$setModule(actionContext.module);
+                        //添加action
+                        $view.$addAction(actionContext.action);
+                        //编译
+                        $compile().fromNode($node[0].childNodes).compile();
+                    } else {
+                        //如果找不到acion, 加载js
+
+                        //加载js后再断续解释
+                        //$using有同步view启动作用, ready之后， 没有作用
+                        $view.$using(url, function () {
+
+                            var actionContext = routeContext.actionContext();
+                            if (actionContext.action) {
+                                //设置module
+                                $view.$setModule(actionContext.module);
+                                //添加action
+                                $view.$addAction(actionContext.action);
+                                //编译
+                                $compile().fromNode($node[0].childNodes).compile();
+                            }
+                        });
+                    }
+                }
+            }]
+        };
+    });
+})(bingo);
+﻿
+(function (bingo) {
+    /*
+        使用方法:
+        bg-attr="{src:'text.html', value:'ddd'}"
+        bg-prop="{disabled:false, checked:true}"
+        bg-checked="true" //直接表达式
+        bg-checked="helper.checked" //绑定到变量, 双向绑定
+    */
+    bingo.each('attr,prop,src,checked,disabled,readonly,class'.split(','), function (attrName) {
+        bingo.command('bg-' + attrName, function () {
+
+            return ['$view', '$attr', '$node', function ($view, $attr, $node) {
+                /// <param name="$view" value="bingo.view.viewClass()"></param>
+                /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
+                /// <param name="$node" value="$([])"></param>
+
+                var _set = function (val) {
+                    switch (attrName) {
+                        case 'attr':
+                            //bg-attr="{src:'text.html', value:'ddd'}"
+                            $node.attr(val);
+                            break;
+                        case 'prop':
+                            $node.prop(val);
+                            break;
+                        case 'disabled':
+                        case 'readonly':
+                        case 'checked':
+                            $node.prop(attrName, val);
+                            break;
+                        default:
+                            $node.attr(attrName, val);
+                            break;
+                    }
+
+                };
+
+                $attr.$subsResults(function (newValue) {
+                    _set(newValue);
+                }, (attrName == 'attr' || attrName == 'prop'));
+
+                $attr.$initResults(function (value) {
+                    _set(value);
+                });
+
+                if (attrName == 'checked') {
+                    //如果是checked, 双向绑定
+                    $node.click(function () {
+                        var value = $node.prop('checked');
+                        $attr.$value(value);
+                        $view.$update();
                     });
                 }
-            }
-        }]
-    };
-});
-﻿/*
-    使用方法:
-    bg-attr="{src:'text.html', value:'ddd'}"
-    bg-prop="{disabled:false, checked:true}"
-    bg-checked="true" //直接表达式
-    bg-checked="helper.checked" //绑定到变量, 双向绑定
-*/
-bingo.each('attr,prop,src,checked,disabled,readonly,class'.split(','), function (attrName) {
-    bingo.command('bg-' + attrName, function () {
 
-        return ['$view', '$attr', '$node', function ($view, $attr, $node) {
-            /// <param name="$view" value="bingo.view.viewClass()"></param>
-            /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
-            /// <param name="$node" value="$([])"></param>
+            }];
 
-            var _set = function (val) {
-                switch (attrName) {
-                    case 'attr':
-                        //bg-attr="{src:'text.html', value:'ddd'}"
-                        $node.attr(val);
-                        break;
-                    case 'prop':
-                        $node.prop(val);
-                        break;
-                    case 'disabled':
-                    case 'readonly':
-                    case 'checked':
-                        $node.prop(attrName, val);
-                        break;
-                    default:
-                        $node.attr(attrName, val);
-                        break;
-                }
-
-            };
-
-            $attr.$subsResults(function (newValue) {
-                _set(newValue);
-            }, (attrName == 'attr' || attrName == 'prop'));
-
-            $attr.$initResults(function (value) {
-                _set(value);
-            });
-
-            if (attrName == 'checked') {
-                //如果是checked, 双向绑定
-                $node.click(function () {
-                    var value = $node.prop('checked');
-                    $attr.$value(value);
-                    $view.$update();
-                });
-            }
-
-        }];
-
+        });
     });
-});
-﻿/*
-    使用方法:
-    bg-event="{click:function(e){}, dblclick:helper.dblclick}"
-    bg-click="helper.click"     //绑定到方法
-    bg-click="helper.click()"   //直接执行方法
-*/
-bingo.each('event,click,blur,dblclick,focus,focusin,focusout,keydown,keypress,keyup,mousedown,mouseenter,mouseleave,mousemove,mouseout,mouseover,mouseup,resize,scroll,select,submit'.split(','), function (eventName) {
-    bingo.command('bg-' + eventName, function () {
 
-        return ['$view', '$node', '$attr', function ($view, $node, $attr) {
-            /// <param name="$view" value="bingo.view.viewClass()"></param>
-            /// <param name="$node" value="$([])"></param>
-            /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
+})(bingo);
+﻿
+(function (bingo) {
+    /*
+        使用方法:
+        bg-event="{click:function(e){}, dblclick:helper.dblclick}"
+        bg-click="helper.click"     //绑定到方法
+        bg-click="helper.click()"   //直接执行方法
+    */
+    bingo.each('event,click,blur,dblclick,focus,focusin,focusout,keydown,keypress,keyup,mousedown,mouseenter,mouseleave,mousemove,mouseout,mouseover,mouseup,resize,scroll,select,submit,contextmenu'.split(','), function (eventName) {
+        bingo.command('bg-' + eventName, function () {
 
-            var bind = function (evName, callback) {
-                $node.on(evName, function () {
-                    //console.log(eventName);
-                    callback.apply(this, arguments);
-                    $view.$update();
-                });
-            };
+            return ['$view', '$node', '$attr', function ($view, $node, $attr) {
+                /// <param name="$view" value="bingo.view.viewClass()"></param>
+                /// <param name="$node" value="$([])"></param>
+                /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
 
-            if (eventName != 'event') {
-                var fn = $attr.$value();
-                if (!bingo.isFunction(fn))
-                    fn = function (e) { return $attr.$eval(e); };
-                bind(eventName, fn);
-            } else {
-                var evObj = $attr.$results();
-                if (bingo.isObject(evObj)) {
-                    var fn = null;
-                    for (var n in evObj) {
-                        if (bingo.hasOwnProp(evObj, n)) {
-                            fn = evObj[n];
-                            if (bingo.isFunction(fn))
-                                bind(n, fn);
+                var bind = function (evName, callback) {
+                    $node.on(evName, function () {
+                        //console.log(eventName);
+                        callback.apply(this, arguments);
+                        $view.$update();
+                    });
+                };
+
+                if (eventName != 'event') {
+                    var fn = $attr.$value();
+                    if (!bingo.isFunction(fn))
+                        fn = function (e) { return $attr.$eval(e); };
+                    bind(eventName, fn);
+                } else {
+                    var evObj = $attr.$results();
+                    if (bingo.isObject(evObj)) {
+                        var fn = null;
+                        for (var n in evObj) {
+                            if (bingo.hasOwnProp(evObj, n)) {
+                                fn = evObj[n];
+                                if (bingo.isFunction(fn))
+                                    bind(n, fn);
+                            }
                         }
                     }
                 }
-            }
 
-        }];
+            }];
 
+        });
     });
-});
+
+})(bingo);
 ﻿
 (function (bingo) {
     //version 1.0.1
@@ -5922,122 +6005,135 @@ bingo.each('event,click,blur,dblclick,focus,focusin,focusout,keydown,keypress,ke
 })(bingo);
 
 ﻿
-/*
-    使用方法:
-    bg-route="view/system/user/list"
+(function (bingo) {
 
-    连接到view/system/user/list, 目标:main
-    <a href="#view/system/user/list" bg-target="main">在main加载连接</a>
-    设置frame:'main'
-    <div bg-route="" bg-route-name="main"></div>
-*/
-bingo.command('bg-route', function () {
-    return {
-        priority: 1000,
-        replace: false,
-        view: true,
-        compileChild: false,
-        compile: ['$compile', '$node', '$attr', '$location', function ($compile, $node, $attr, $location) {
-            /// <param name="$compile" value="function(){return bingo.compile();}"></param>
-            /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
-            /// <param name="$node" value="$([])"></param>
+    /*
+        使用方法:
+        bg-route="view/system/user/list"
+    
+        连接到view/system/user/list, 目标:main
+        <a href="#view/system/user/list" bg-target="main">在main加载连接</a>
+        设置frame:'main'
+        <div bg-route="" bg-name="main"></div>
+    */
+    bingo.command('bg-route', function () {
+        return {
+            priority: 1000,
+            replace: false,
+            view: true,
+            compileChild: false,
+            compile: ['$compile', '$node', '$attr', '$location', function ($compile, $node, $attr, $location) {
+                /// <param name="$compile" value="function(){return bingo.compile();}"></param>
+                /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
+                /// <param name="$node" value="$([])"></param>
 
-            //只要最后一次，防止连续点击链接
-            var _last = null;
-            $location.onChange(function (url) {
-                _last && _last.stop();
-                _last = $compile().fromUrl(url).appendTo($node).onCompilePre(function () {
-                    $node.html('');
-                }).onCompiled(function () {
-                    _last = null;
-                    $node.trigger('bg-route-loaded', [url]);
-                }).compile();
-            });
+                //只要最后一次，防止连续点击链接
+                var _last = null;
+                $location.onChange(function (url) {
+                    _last && _last.stop();
+                    _last = $compile().fromUrl(url).appendTo($node).onCompilePre(function () {
+                        $node.html('');
+                    }).onCompiled(function () {
+                        _last = null;
+                        $node.trigger('bg-location-loaded', [url]);
+                    }).compile();
+                });
 
-            $attr.$init(function () {
-                return $attr.$prop();
-            }, function (value) {
-                value && $location.href(value);
-            });
-        }]
-    };
-});
-
-$(function () {
-    $(document.documentElement).on('click', '[href]', function () {
-        if (!bingo.location) return;
-        var jo = $(this);
-        var href = jo.attr('href');
-        if (href.indexOf('#') >= 0) {
-            var $location = bingo.location(this);
-            var target = jo.attr('bg-target');
-            href = href.split('#');
-            href = href[href.length - 1];
-            $location.href(href, target);
-        }
-    });
-});
-﻿
-//bg-html="'<br />'" | bg-html="datas.html"
-bingo.command('bg-html', function () {
-    return ['$attr', '$node', function ($attr, $node) {
-        /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
-        /// <param name="$node" value="$([])"></param>
-        var _set = function (val) {
-            $node.html(bingo.toStr(val));
+                $attr.$init(function () {
+                    return $attr.$prop();
+                }, function (value) {
+                    value && $location.href(value);
+                });
+            }]
         };
-        $attr.$subsResults(function (newValue) {
-            _set(newValue);
-        });
-        $attr.$initResults(function (value) {
-            _set(value);
-        });
+    });
 
-    }];
-});
+    $(function () {
+        $(document.documentElement).on('click', '[href]', function () {
+            if (!bingo.location) return;
+            var jo = $(this);
+            var href = jo.attr('href');
+            if (href.indexOf('#') >= 0) {
+                var $location = bingo.location(this);
+                var target = jo.attr('bg-target');
+                href = href.split('#');
+                href = href[href.length - 1];
+                $location.href(href, target);
+            }
+        });
+    });
+
+})(bingo);
 ﻿
-bingo.command('bg-if', function () {
-    return {
-        compileChild: false,
-        compile: ['$attr', '$node', '$compile', function($attr, $node, $compile) {
-            /// <param name="$compile" value="function(){return bingo.compile();}"></param>
+(function (bingo) {
+
+    //bg-html="'<br />'" | bg-html="datas.html"
+    bingo.command('bg-html', function () {
+        return ['$attr', '$node', function ($attr, $node) {
             /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
             /// <param name="$node" value="$([])"></param>
-
-            var jo = $($node);
-            var html = jo.html();
-            jo.html(''); jo = null;
+            var _set = function (val) {
+                $node.html(bingo.toStr(val));
+            };
             $attr.$subsResults(function (newValue) {
-                if (newValue) {
-                    $node.show();
-                    $compile().fromHtml(html).appendTo($node).compile();
-                } else
-                    $node.html('').hide();
-                //console.log('if ', newValue, html);
+                _set(newValue);
+            });
+            $attr.$initResults(function (value) {
+                _set(value);
             });
 
-        }]
-    };
-});
-﻿/*
+        }];
+    });
+
+})(bingo);
+﻿(function (bingo) {
+
+    bingo.command('bg-if', function () {
+        return {
+            compileChild: false,
+            compile: ['$attr', '$node', '$compile', function ($attr, $node, $compile) {
+                /// <param name="$compile" value="function(){return bingo.compile();}"></param>
+                /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
+                /// <param name="$node" value="$([])"></param>
+
+                var jo = $($node);
+                var html = jo.html();
+                jo.html(''); jo = null;
+                $attr.$subsResults(function (newValue) {
+                    if (newValue) {
+                        $node.show();
+                        $compile().fromHtml(html).appendTo($node).compile();
+                    } else
+                        $node.html('').hide();
+                    //console.log('if ', newValue, html);
+                });
+
+            }]
+        };
+    });
+
+})(bingo);
+﻿
+(function (bingo) {
+    /*
     使用方法:
     bg-include="helper.url"   //与变量绑定
     bg-include="#nodeid"   //以#开始, $('#nodeid').html()为内容
     bg-include="view/system/user/list"   //从url加载内容
 */
-bingo.command('bg-include', function () {
-    return ['$view', '$attr', '$viewnode', '$tmpl', function ($view, $attr, $viewnode, $tmpl) {
-        /// <param name="$view" value="bingo.view.viewClass()"></param>
-        /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
-        /// <param name="$viewnode" value="bingo.view.viewnodeClass()"></param>
-        /// <param name="$tmpl" value="function(url){ return bingo.tmpl('', $view);}"></param>
-        
-        var _prop = $attr.$prop();
-        //如果值为空不处理
-        if (bingo.isNullEmpty(_prop)) return;
+    bingo.command('bg-include', function () {
+        return ['$view', '$attr', '$viewnode', '$tmpl', function ($view, $attr, $viewnode, $tmpl) {
+            /// <param name="$view" value="bingo.view.viewClass()"></param>
+            /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
+            /// <param name="$viewnode" value="bingo.view.viewnodeClass()"></param>
+            /// <param name="$tmpl" value="function(url){ return bingo.tmpl('', $view);}"></param>
 
-        //是否绑定变量
-        var _html = function (src) {
+            var _prop = $attr.$prop();
+            //如果值为空不处理
+            if (bingo.isNullEmpty(_prop)) return;
+
+            //是否绑定变量
+            var _html = function (src) {
                 //src如果有#开头, 认为ID, 如:'$div1; 否则认为url, 如:tmpl/add.html
                 var isPath = (src.indexOf('#') != 0);
                 var html = '';
@@ -6055,164 +6151,179 @@ bingo.command('bg-include', function () {
             };
 
 
-        $attr.$initResults(function (value) {
-            var isLinkVal = !bingo.isUndefined(value);
-            if (isLinkVal) {
-                //如果绑定变量, 观察变量变化
-                $attr.$subsResults(function (newValue) {
-                    _html(newValue);
+            $attr.$initResults(function (value) {
+                var isLinkVal = !bingo.isUndefined(value);
+                if (isLinkVal) {
+                    //如果绑定变量, 观察变量变化
+                    $attr.$subsResults(function (newValue) {
+                        _html(newValue);
+                    });
+                    _html(value);
+                } else
+                    _html(_prop);//如果没有绑定变量,直接取文本
+            });
+
+        }];
+    });
+
+})(bingo);
+﻿(function (bingo) {
+
+    bingo.command('bg-model', function () {
+
+        return ['$view', '$node', '$attr', function ($view, $node, $attr) {
+            /// <param name="$view" value="bingo.view.viewClass()"></param>
+            /// <param name="$node" value="$([])"></param>
+            /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
+
+            var _isRadio = $node.is(":radio");
+            var _isCheckbox = $node.is(":checkbox");
+            _isCheckbox && $node.data("checkbox_value_02", $node.val());
+
+            var _getElementValue = function () {
+                var jT = $node;
+                return _isCheckbox ? (jT.prop("checked") ? jT.data("checkbox_value_02") : '') : jT.val();
+            }, _setElementValue = function (value) {
+                var jo = $node;
+                value = bingo.toStr(value);
+                if (_isCheckbox) {
+                    //jo.data("checkbox_value_02", value);
+                    jo.prop("checked", (jo.val() == value));
+                } else if (_isRadio) {
+                    jo.prop("checked", (jo.val() == value));
+                } else
+                    jo.val(value);
+
+            };
+
+            if (_isRadio) {
+                $node.click(function () {
+                    var value = _getElementValue();
+                    $attr.$value(value);
+                    $view.$update();
                 });
-                _html(value);
-            } else
-                _html(_prop);//如果没有绑定变量,直接取文本
-        });
+            } else {
+                $node.on('change', function () {
+                    var value = _getElementValue();
+                    $attr.$value(value);
+                    $view.$update();
+                });
+            }
 
-    }];
-});
-﻿
-bingo.command('bg-model', function () {
 
-    return ['$view', '$node', '$attr', function ($view, $node, $attr) {
-        /// <param name="$view" value="bingo.view.viewClass()"></param>
-        /// <param name="$node" value="$([])"></param>
-        /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
-
-        var _isRadio = $node.is(":radio");
-        var _isCheckbox = $node.is(":checkbox");
-        _isCheckbox && $node.data("checkbox_value_02", $node.val());
-
-        var _getElementValue = function () {
-            var jT = $node;
-            return _isCheckbox ? (jT.prop("checked") ? jT.data("checkbox_value_02") : '') : jT.val();
-        }, _setElementValue = function (value) {
-            var jo = $node;
-            value = bingo.toStr(value);
-            if (_isCheckbox) {
-                //jo.data("checkbox_value_02", value);
-                jo.prop("checked", (jo.val() == value));
-            } else if (_isRadio) {
-                jo.prop("checked", (jo.val() == value));
-            } else
-                jo.val(value);
-
-        };
-
-        if (_isRadio) {
-            $node.click(function () {
-                var value = _getElementValue();
-                $attr.$value(value);
-                $view.$update();
+            $attr.$subsValue(function (newValue) {
+                _setElementValue(newValue);
             });
-        } else {
-            $node.on('change', function () {
-                var value = _getElementValue();
-                $attr.$value(value);
-                $view.$update();
+
+            $attr.$initValue(function (value) {
+                _setElementValue(value);
             });
-        }
 
+        }];
 
-        $attr.$subsValue(function (newValue) {
-            _setElementValue(newValue);
-        });
+    });
 
-        $attr.$initValue(function (value) {
-            _setElementValue(value);
-        });
-
-    }];
-
-});
+})(bingo);
 ﻿
-/*
-    使用方法:
-    bg-style="{display:'none', width:'100px'}"
-    bg-show="true"
-    bg-show="res.show"
-*/
-bingo.each('style,show,hide,visible'.split(','), function (attrName) {
-    bingo.command('bg-' + attrName, function () {
+(function (bingo) {
+
+    /*
+        使用方法:
+        bg-style="{display:'none', width:'100px'}"
+        bg-show="true"
+        bg-show="res.show"
+    */
+    bingo.each('style,show,hide,visible'.split(','), function (attrName) {
+        bingo.command('bg-' + attrName, function () {
+
+            return ['$attr', '$node', function ($attr, $node) {
+                /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
+                /// <param name="$node" value="$([])"></param>
+
+                var _set = function (val) {
+
+                    switch (attrName) {
+                        case 'style':
+                            //bg-style="{display:'none', width:'100px'}"
+                            $node.css(val);
+                            break;
+                        case 'hide':
+                            val = !val;
+                        case 'show':
+                            if (val) $node.show(); else $node.hide();
+                            break;
+                        case 'visible':
+                            val = val ? 'visible' : 'hidden';
+                            $node.css('visibility', val);
+                            break;
+                        default:
+                            $node.css(attrName, val);
+                            break;
+                    }
+                };
+
+                $attr.$subsResults(function (newValue) {
+                    _set(newValue);
+                }, (attrName == 'style'));
+
+                $attr.$initResults(function (value) {
+                    _set(value);
+                });
+
+            }];
+
+        });
+    });
+
+})(bingo);
+﻿
+(function (bingo) {
+
+    bingo.command('bg-text', function () {
 
         return ['$attr', '$node', function ($attr, $node) {
             /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
             /// <param name="$node" value="$([])"></param>
 
             var _set = function (val) {
-
-                switch (attrName) {
-                    case 'style':
-                        //bg-style="{display:'none', width:'100px'}"
-                        $node.css(val);
-                        break;
-                    case 'hide':
-                        val = !val;
-                    case 'show':
-                        if (val) $node.show(); else $node.hide();
-                        break;
-                    case 'visible':
-                        val = val ? 'visible' : 'hidden';
-                        $node.css('visibility', val);
-                        break;
-                    default:
-                        $node.css(attrName, val);
-                        break;
-                }
+                $node.text(bingo.toStr(val));
             };
 
+            //订阅执行结果， 如果执行结果改变时，同步数据
             $attr.$subsResults(function (newValue) {
                 _set(newValue);
-            }, (attrName == 'style'));
+            });
 
+            //根据执行结果初始结果
             $attr.$initResults(function (value) {
                 _set(value);
             });
 
         }];
-
     });
-});
+
+})(bingo);
 ﻿
-bingo.command('bg-text', function () {
-
-    return ['$attr', '$node', function ($attr, $node) {
-        /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
-        /// <param name="$node" value="$([])"></param>
-        
-        var _set = function (val) {
-            $node.text(bingo.toStr(val));
-        };
-
-        //订阅执行结果， 如果执行结果改变时，同步数据
-        $attr.$subsResults(function (newValue) {
-            _set(newValue);
-        });
-
-        //根据执行结果初始结果
-        $attr.$initResults(function (value) {
-            _set(value);
-        });
-
-    }];
-});
-﻿/*
+(function (bingo) {
+    /*
     使用方法:
     bg-include="helper.url"   //与变量绑定
     bg-include="#nodeid"   //以#开始, $('#nodeid').html()为内容
     bg-include="view/system/user/list"   //从url加载内容
 */
-bingo.command('bg-include', function () {
-    return ['$view', '$attr', '$viewnode', '$tmpl', function ($view, $attr, $viewnode, $tmpl) {
-        /// <param name="$view" value="bingo.view.viewClass()"></param>
-        /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
-        /// <param name="$viewnode" value="bingo.view.viewnodeClass()"></param>
-        /// <param name="$tmpl" value="function(url){ return bingo.tmpl('', $view);}"></param>
-        
-        var _prop = $attr.$prop();
-        //如果值为空不处理
-        if (bingo.isNullEmpty(_prop)) return;
+    bingo.command('bg-include', function () {
+        return ['$view', '$attr', '$viewnode', '$tmpl', function ($view, $attr, $viewnode, $tmpl) {
+            /// <param name="$view" value="bingo.view.viewClass()"></param>
+            /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
+            /// <param name="$viewnode" value="bingo.view.viewnodeClass()"></param>
+            /// <param name="$tmpl" value="function(url){ return bingo.tmpl('', $view);}"></param>
 
-        //是否绑定变量
-        var _html = function (src) {
+            var _prop = $attr.$prop();
+            //如果值为空不处理
+            if (bingo.isNullEmpty(_prop)) return;
+
+            //是否绑定变量
+            var _html = function (src) {
                 //src如果有#开头, 认为ID, 如:'$div1; 否则认为url, 如:tmpl/add.html
                 var isPath = (src.indexOf('#') != 0);
                 var html = '';
@@ -6230,28 +6341,33 @@ bingo.command('bg-include', function () {
             };
 
 
-        $attr.$initResults(function (value) {
-            var isLinkVal = !bingo.isUndefined(value);
-            if (isLinkVal) {
-                //如果绑定变量, 观察变量变化
-                $attr.$subsResults(function (newValue) {
-                    _html(newValue);
-                });
-                _html(value);
-            } else
-                _html(_prop);//如果没有绑定变量,直接取文本
-        });
+            $attr.$initResults(function (value) {
+                var isLinkVal = !bingo.isUndefined(value);
+                if (isLinkVal) {
+                    //如果绑定变量, 观察变量变化
+                    $attr.$subsResults(function (newValue) {
+                        _html(newValue);
+                    });
+                    _html(value);
+                } else
+                    _html(_prop);//如果没有绑定变量,直接取文本
+            });
 
-    }];
-});
+        }];
+    });
+
+})(bingo);
 ﻿
-bingo.command('bg-node', function () {
+(function (bingo) {
 
-    return ['$attr', 'node', function ($attr, node) {
-        $attr.$value(node);
-    }];
-});
+    bingo.command('bg-node', function () {
 
+        return ['$attr', 'node', function ($attr, node) {
+            $attr.$value(node);
+        }];
+    });
+
+})(bingo);
 ﻿
 (function (bingo) {
     //version 1.1.0

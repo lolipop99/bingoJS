@@ -5,7 +5,7 @@
 
     bingo.extend({
         compile: function (view) {
-            return _compileClass.NewObject().view(view || bingo.rootView());
+            return _compileClass.NewObject().view(view);
         },
         tmpl: function (url, view) {
             /// <summary>
@@ -214,13 +214,13 @@
             var tagName = node.tagName, command = null;
             if (bingo.isNullEmpty(tagName)) return false;
             tagName = tagName.toLowerCase();
-            if (tagName == 'script') return false;
 
             var moduleI = p.view.$getModule();
 
             command = moduleI.command(tagName);
             var attrList = [], textTagList = [], compileChild = true;
             var tmpl = null, replace = false, include = false, isNewView = false;
+            if (tagName == 'script') compileChild = false;
             if (command) {
                 //node
                 command = _compiles._makeCommand(command, p.view, node);
@@ -228,7 +228,7 @@
                 include = command.include;
                 tmpl = command.tmpl;
                 isNewView = command.view;
-                compileChild = command.compileChild;
+                (!compileChild) || (compileChild = command.compileChild);
                 attrList.push({ aName: tagName, aVal: null, type: 'node', command: command });
             } else {
                 //attr
@@ -473,7 +473,7 @@
                 var isInDoc = !this._parentNode;
 
                 try {
-                    this.trigger('compilePre', [jo[0]]);
+                    this.trigger('compilePre', [jo]);
 
                     var view = this.view(),
                         parentViewnode = bingo.view.viewnodeClass.getViewnode(parentNode);
@@ -517,7 +517,7 @@
                 } catch (e) {
                     bingo.trace(e);
                 }
-                this.trigger('compiled', [jo[0]]);
+                this.trigger('compiled', [jo]);
                 this.dispose();
             },
             compile: function () {
@@ -564,7 +564,7 @@
                 var attrValue = attr.$prop();
                 try {
                     var retScript = [hasReturn ? 'return ' : '', attrValue, ';'].join('');
-                    return contextCache[cacheName] = (new Function('$view', '$node', '$withData', [
+                    return contextCache[cacheName] = (new Function('$view', '$node', '$withData', 'bingo', [
                         'with ($view) {',
                             //如果有withData, 影响性能
                             withData ? 'with ($withData) {' : '',
@@ -579,7 +579,7 @@
                                     '}'].join('') : retScript,
                                 '});',
                             withData ? '}' : '',
-                        '}'].join('')))(view, node, withData);
+                        '}'].join('')))(view, node, withData, bingo);//bingo(多版本共存)
                 } catch (e) {
                     console.warn(['evalScriptContextFun: ', retScript].join(''));
                     bingo.trace(e);

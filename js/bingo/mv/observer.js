@@ -45,6 +45,7 @@
                     }
                 }, disposer || view);
             } else {
+                if (deep) _oldValue = bingo.clone(_oldValue);
                 item.check = function () {
                     if (disposer && disposer.isDisposed) { item.dispose && item.dispose(); return; }
                     var newValue = _getValue(),

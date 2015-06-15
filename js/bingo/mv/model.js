@@ -10,22 +10,23 @@
     var _toObject = function (obj) {
         var o = obj || {}, val;
         bingo.eachProp(this, function (item, n) {
-            if (bingo.isVariable(item)) {
-                val = item();
-                if (bingo.isVariable(o[n]))
-                    o[n](val);
-                else
-                    o[n] = val;
-            }
+            if (bingo.isVariable(o[n]))
+                o[n](item);
+            else if (n != '_isModel_' && n != 'toObject' && n != 'fromObject')
+                o[n] = bingo.variableOf(item);
         });
         return o;
 
-    }, _formObject = function (obj) {
+    }, _fromObject = function (obj, extend) {
         if (obj) {
             bingo.eachProp(obj, bingo.proxy(this, function (item, n) {
-                item = this[n];
-                if (bingo.isVariable(item)) {
-                    item(obj[n]);
+                if (n in this) {
+                    if (bingo.isVariable(this[n])) {
+                        this[n](item);
+                    } else
+                        this[n] = bingo.variableOf(item);
+                } else if (extend) {
+                    this[n] = bingo.variable(item);
                 }
             }));
         }
@@ -40,7 +41,7 @@
 
         o._isModel_ = _isModel_;
         o.toObject = _toObject;
-        o.formObject = _formObject;
+        o.fromObject = _fromObject;
         return o;
     };
 

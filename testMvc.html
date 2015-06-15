@@ -239,15 +239,25 @@
         <helloReplace></helloReplace>
         <helloUrl></helloUrl>
         <div> ================ </div>
+
+        
+        <!--script 只能读取，IE8及以下版本不支持写入，所以最好用于模板，和replace为true标签-->
+        <script type="text/html" bg-miniTable>
+            <columns>
+                <item formator="dddd">aaa</item>
+                <item formator="dddd" name="bbb" text="aaa">bbb</item>
+            </columns>
+        </script>
+    <script type="text/html" bg-html="input">
+            
+        </script>
+
     </div>
     <!--viewCommand end-->
 
     <div >
         <div><a href="#{{: bingo.routeLink('view', {controller:'user', action:'form1'})}}" bg-target="main">to form1</a>    <a href="#view/user/form2" bg-target="main">to form2</a></div>
-        <div bg-route="view/user/form1" bg-route-name="main"></div>
+        <div bg-route="view/user/form1" bg-name="main"></div>
     </div>
-
-        <!--todo:tagText只读标签支持-->
-
 </body>
 </html>

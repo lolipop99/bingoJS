@@ -104,7 +104,10 @@
                     item.content = flt.content;
                     item.flt = flt;
                 }
-                item.fn = _getScriptContextFn(item.content, view);
+
+                var fnTT = _getScriptContextFn(item.content, view)
+
+                item.fn = function (view, data) { return fnTT(view, data, bingo); };//bingo(多版本共存)
             }
         }
         return item;
@@ -113,7 +116,7 @@
         if (bingo.isNullEmpty(evaltext)) return bingo.noop;
         var oldEvalText = evaltext;
         try {
-            return new Function('$view, $data', [
+            return new Function('$view', '$data', 'bingo', [
                 'try {',
                     view ? 'with ($view) {' : '',
                         'with ($data) {',

@@ -83,8 +83,8 @@
                 /// <summary>
                 /// 
                 /// </summary>
-                /// <param name="callback" value='function(node)'></param>
-                callback && intellisenseSetCallContext(callback, this, [document.body]);
+                /// <param name="callback" type='function(jNode)'></param>
+                callback && intellisenseSetCallContext(callback, this, [$([])]);
                 return this;
             },
             //编译前执行， function
@@ -92,8 +92,8 @@
                 /// <summary>
                 /// 
                 /// </summary>
-                /// <param name="callback" value='function(node)'></param>
-                callback && intellisenseSetCallContext(callback, this, [document.body]);
+                /// <param name="callback" type='function(jNode)'></param>
+                callback && intellisenseSetCallContext(callback, this, [$([])]);
                 return this;
             },
             compile: function () {

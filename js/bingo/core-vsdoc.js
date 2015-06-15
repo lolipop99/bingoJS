@@ -313,6 +313,11 @@
         }
     };
 
+    //解决多版共存问题
+    var majVer = ['bingoV' + bingo.version.major].join(''),
+        minorVer = [majVer, bingo.version.minor].join('_');
+    window[majVer] = window[minorVer] = bingo;
+
     var _clone = {
         isCloneObject: function (obj) {
             return bingo.isObject(obj) && !bingo.isWindow(obj) && !bingo.isElement(obj);
