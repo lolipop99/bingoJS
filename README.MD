@@ -6,7 +6,7 @@
 
 更新记录:[http://git.oschina.net/bingoJS/bingoJS/blob/master/history.md](http://git.oschina.net/bingoJS/bingoJS/blob/master/history.md)
 
-QQ交流群:172982805
+`QQ交流群:172982805`
 
 
 ####1、关于bingoJS
