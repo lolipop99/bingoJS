@@ -434,6 +434,7 @@
         this.Prop({
             //给下一级新的View注入action
             action: null,
+            async: true,
             fromUrl: '',
             //withData作用空间, 单个时用
             withData: null,
@@ -450,7 +451,7 @@
             },
             appendTo: function (jqSelector) { this._parentNode = $(jqSelector)[0]; return this; },
             fromNode: function (node) { return this.fromJquery(node); },
-            fromHtml: function (html) { return this.fromJquery($.parseHTML(html)); },// this.fromJquery(html); },
+            fromHtml: function (html) { return this.fromJquery($.parseHTML(html, true)); },// this.fromJquery(html); },
             _isEnd: function () {
                 return this.isDisposed
                     || this.stop()
@@ -535,7 +536,7 @@
                     bingo.tmpl(this.fromUrl(), view).success(function (html) {
                         if ($this._isEnd()) { return; }
                         $this.fromHtml(html).compile();
-                    }).onDispose(function () {
+                    }).async(this.async()).onDispose(function () {
                         $this.dispose();
                         //view && !view.isDisposed && view._decReadyDep();
                     }).get();

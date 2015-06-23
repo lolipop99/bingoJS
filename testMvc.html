@@ -257,7 +257,8 @@
 
     <div >
         <div><a href="#{{: bingo.routeLink('view', {controller:'user', action:'form1'})}}" bg-target="main">to form1</a>    <a href="#view/user/form2" bg-target="main">to form2</a></div>
-        <div bg-route="view/user/form1" bg-name="main"></div>
+        <div bg-route="view/user/form1" bg-name="main"
+            bg-route-load="function(url){ console.log('load', this.queryParams(), this);}"></div>
     </div>
 </body>
 </html>

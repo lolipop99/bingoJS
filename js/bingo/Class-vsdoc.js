@@ -239,6 +239,13 @@
                 bingo.isFunction(item) && intellisenseSetCallContext(item, def);
             });
         };
+        define.extendProp = function (obj) {
+            /// <summary>
+            /// 扩展Prop
+            /// </summary>
+            /// <param name="obj"></param>
+            _extendProp(define, obj);
+        };
         define.NewObject = function () {
             /// <summary>
             /// 实例化对象

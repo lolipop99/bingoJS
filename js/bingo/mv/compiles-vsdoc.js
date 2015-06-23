@@ -44,6 +44,7 @@
         });
 
         this.Prop({
+            async: true,
             fromUrl: '',
             //withData作用空间, 单个时用
             withData: null,

@@ -42,6 +42,15 @@
         };
     });
 
+    bingo.command('bg-route-load', function () {
+        return ['$location', '$attr', function ($location, $attr) {
+
+                $attr.$initResults(function (value) {
+                    bingo.isFunction(value) && $location.onLoaded(function(url){ value.call($location, url); });
+                });
+            }];
+    });
+
     $(function () {
         $(document.documentElement).on('click', '[href]', function () {
             if (!bingo.location) return;

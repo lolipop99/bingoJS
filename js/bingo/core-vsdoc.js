@@ -67,7 +67,7 @@
             return this.isType("Boolean", obj);
         },
         isNullEmpty: function (s) {
-            ///<summary>是否Boolean</summary>
+            ///<summary>是否空串</summary>
             /// <param name="s"></param>
             return (this.isNull(s) || s == stringEmpty);
         },

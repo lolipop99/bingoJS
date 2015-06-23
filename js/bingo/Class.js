@@ -149,6 +149,9 @@
         define.extend = function (obj) {
             _extendDefine(define, obj);
         };
+        define.extendProp = function (obj) {
+            _extendProp(define, obj);
+        };
         define.NewObject = function () {
             var obj = new define(_NewObject_define_String);
 
@@ -226,7 +229,7 @@
             //释放状态, 0:未释放, 1:释放中, 2:已释放
             disposeStatus: 0,
             dispose: function () {
-                if (!this.isDisposed) {
+                if (this.disposeStatus === 0) {
                     try {
                         this.disposeStatus = 1;
                         this.trigger('$dispose');
