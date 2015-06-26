@@ -2,13 +2,9 @@
 
 库包下载：[https://git.oschina.net/bingoJS/bingoJS/blob/master/bingo.zip](https://git.oschina.net/bingoJS/bingoJS/blob/master/bingo.zip)
 
-Demo:[https://git.oschina.net/bingoJS/bingoJS/tree/master/demo]
+Demo:[https://git.oschina.net/bingoJS/bingoJS/tree/master/demo](https://git.oschina.net/bingoJS/bingoJS/tree/master/demo)
 
-(https://git.oschina.net/bingoJS/bingoJS/tree/master/demo)
-
-更新记录:[http://git.oschina.net/bingoJS/bingoJS/blob/master/history.md]
-
-(http://git.oschina.net/bingoJS/bingoJS/blob/master/history.md)
+更新记录:[http://git.oschina.net/bingoJS/bingoJS/blob/master/history.md](http://git.oschina.net/bingoJS/bingoJS/blob/master/history.md)
 
 `前端MV开发交流群:172982805`
 
