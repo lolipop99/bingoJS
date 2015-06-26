@@ -68,7 +68,7 @@ MVC是一种开发模式，是一种代码组织和规划方式，可以对开�
     });
 </script>
 ```
-#### 3.2、支持纯前端MV开发，这时可以认为你服务端代码和浏览端代码完成隔离，即retful+前端MV：
+#### 3.2、支持纯前端MV开发，这时可以认为你服务端代码和浏览端代码完全隔离，即retful+前端MV：
 ```html
 <div bg-action="action/demo/user">
     名字：<input bg-model="datas.name" />
