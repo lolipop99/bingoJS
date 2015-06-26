@@ -1,8 +1,6 @@
 参考文档：[http://bingojs.mydoc.io/](http://bingojs.mydoc.io/)
 
-库包下载：[https://git.oschina.net/bingoJS/bingoJS/blob/master/bingo.zip?
-
-dir=0&filepath=bingo.zip](https://git.oschina.net/bingoJS/bingoJS/blob/master/bingo.zip)
+库包下载：[https://git.oschina.net/bingoJS/bingoJS/blob/master/bingo.zip](https://git.oschina.net/bingoJS/bingoJS/blob/master/bingo.zip)
 
 Demo:[https://git.oschina.net/bingoJS/bingoJS/tree/master/demo]
 
