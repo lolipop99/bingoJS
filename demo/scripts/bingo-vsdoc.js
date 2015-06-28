@@ -2580,6 +2580,13 @@ window.intellisenseLogMessage = function (msg) {
             /// <param name="url"></param>
             /// <param name="view">可选， 当前view</param>
             return _tmplClass.NewObject().url(url).view(view);
+        },
+        ready: function (fn) {
+            /// <summary>
+            /// 准备好
+            /// </summary>
+            /// <param name="fn"></param>
+            fn && fn.call(this);
         }
     });
 
@@ -3556,6 +3563,9 @@ window.intellisenseLogMessage = function (msg) {
         return o;
     };
 
+    bingo.location.onHref = bingo.Event();
+    bingo.location.onLoaded = bingo.Event();
+
     var _locationClass = bingo.location.Class = bingo.Class(bingo.linkToDom.LinkToDomClass, function () {
 
         this.Prop({
@@ -3591,6 +3601,7 @@ window.intellisenseLogMessage = function (msg) {
                 var $this = this;
                 this.isRoute() && callback && this.ownerNode().on('bg-location-loaded', function (e, url) {
                     callback.call($this, url);
+                    bingo.location.onLoaded.trigger([$this]);
                 });
             },
             url: function () {

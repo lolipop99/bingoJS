@@ -40,6 +40,9 @@
         return o;
     };
 
+    bingo.location.onHref = bingo.Event();
+    bingo.location.onLoaded = bingo.Event();
+
     var _locationClass = bingo.location.Class = bingo.Class(bingo.linkToDom.LinkToDomClass, function () {
 
         this.Prop({
@@ -75,6 +78,7 @@
                 var $this = this;
                 this.isRoute() && callback && this.ownerNode().on('bg-location-loaded', function (e, url) {
                     callback.call($this, url);
+                    bingo.location.onLoaded.trigger([$this]);
                 });
             },
             url: function () {

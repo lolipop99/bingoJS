@@ -68,17 +68,17 @@ var helper = {
                     attrList: [],
                     textList: [],
                     children: [],
-                    withData: this.getWithData(),
+                    withData: this.getWithData ? this.getWithData() : null,
                     isCompiled: this._isCompiled,
                     isLinked: this._isLinked,
                     isAction: this._isAction,
-                    textNodes: this._textNodes.length
+                    textNodes: this._textNodes ? this._textNodes.length : 0
                 };
                 list.push(item);
 
                 item.attrList = bingo.linq(this.attrList)
                     .select(function () {
-                        item.attrs.push(['[', this._priority, ']', this.attrName, '="', this._content, '"'].join(''));
+                        item.attrs.push(['[', this._priority, ']', this.attrName, '="', this.content, '"'].join(''));
                         return {
                             priority: this._priority,
                             type: this.type,

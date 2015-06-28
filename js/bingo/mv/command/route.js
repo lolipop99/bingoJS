@@ -53,15 +53,17 @@
 
     $(function () {
         $(document.documentElement).on('click', '[href]', function () {
-            if (!bingo.location) return;
             var jo = $(this);
             var href = jo.attr('href');
             if (href.indexOf('#') >= 0) {
-                var $location = bingo.location(this);
-                var target = jo.attr('bg-target');
                 href = href.split('#');
-                href = href[href.length - 1];
-                $location.href(href, target);
+                href = href[href.length - 1].replace(/^[#\s]+/, '');
+                if (!bingo.isNullEmpty(href)) {
+                    var target = jo.attr('bg-target');
+                    if (bingo.location.onHref.trigger([jo, href, target]) === false) return;
+                    var $loc = bingo.location(this);
+                    $loc.href(href, target);
+                }
             }
         });
     });

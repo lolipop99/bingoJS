@@ -1,6 +1,34 @@
+#### 1.1.0629
+1. 优化代码
+
+2. 添加ready方法，代表bingo已经准备好了。
+```script
+bingo.ready(function(){
+  //准备好，得相关逻辑
+});
+```
+
+3. 添加bingo.location.onHref和bingo.location.onLoaded事件
+```script
+//监测href
+bingo.location.onHref(function(jNode, url, target){
+    var $loc = bingo.location(jNode);
+    $loc.href(href, target);
+    return false;//如果返回false, 取消默认逻辑
+});
+
+//监测所有loaction的onLoaded
+bingo.location.onLoaded(function(location){
+  
+});
+```
+
+4.修复绑定时this问题(少用)
 
 #### 1.1.0623
+
 1.complies 添加async属性
+
 2.添加bg-route-loaded模板指令, 处理bg-route加载完成
 ```html
 var lcLoad = function(){
@@ -10,6 +38,7 @@ var lcLoad = function(){
 <div bg-route="view/user/form1" bg-name="main"
             bg-route-load="lcLoad">
 ```
+
 3.支持action js代码与view html模板混合
 ```html
 <div bg-action="action/demo/user/list">
@@ -24,6 +53,7 @@ var lcLoad = function(){
     </script>
 </div>
 ```
+
 4.添加demo, 如何结合bootstrap只需简单搭建bingoJS就可以正常开发业务
 
 

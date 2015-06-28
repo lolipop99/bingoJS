@@ -20,8 +20,15 @@
             //等待动态加载js完成后开始
             bingo.using(function () {
                 var view = bingo.rootView(), node = view.$node();
+                view.onReadyAll(function () {
+                    bingo.__readyE.end();
+                });
                 bingo.compile(view).fromNode(node).compile();
-            });
+            }, bingo.usingPriority.NormalAfter);
+        },
+        __readyE:bingo.Event(),
+        ready: function (fn) {
+            this.__readyE.on(fn);
         }
     });
 
@@ -565,12 +572,12 @@
                 var attrValue = attr.$prop();
                 try {
                     var retScript = [hasReturn ? 'return ' : '', attrValue, ';'].join('');
-                    return contextCache[cacheName] = (new Function('$view', '$node', '$withData', 'bingo', [
+                    return contextCache[cacheName] = (new Function('$view', 'node', '$withData', 'bingo', [
                         'with ($view) {',
                             //如果有withData, 影响性能
                             withData ? 'with ($withData) {' : '',
                                 //this为$node
-                                'return bingo.proxy($node, function (event) {',
+                                'return bingo.proxy(node, function (event) {',
                                     //如果有返回值, 启动try..catch, 影响性能
                                     hasReturn ? [
                                     'try {',
@@ -630,7 +637,7 @@
                 /// </summary>
                 /// <param name="event">可选, 事件</param>
                 var withData = this.getWithData();
-                var fn = _priS.evalScriptContextFun(this, false, this.view(), this.node, withData);
+                var fn = _priS.evalScriptContextFun(this, false, this.view(), this.node(), withData);
                 return fn(event);
             },
             $results: function (event) {
@@ -639,7 +646,7 @@
                 /// </summary>
                 /// <param name="event">可选, 事件</param>
                 var withData = this.getWithData();
-                var fn = _priS.evalScriptContextFun(this, true, this.view(), this.node, withData);
+                var fn = _priS.evalScriptContextFun(this, true, this.view(), this.node(), withData);
                 var res = fn(event);
                 return this.$filter(res);
             },

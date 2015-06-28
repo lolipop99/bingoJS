@@ -21,7 +21,7 @@
 
     var bingo = window.bingo = {
         //主版本号.子版本号.修正版本号
-        version: { major: 1, minor: 1, rev: 615, toString: function () { return [this.major, this.minor, this.rev].join('.'); } },
+        version: { major: 1, minor: 1, rev: 629, toString: function () { return [this.major, this.minor, this.rev].join('.'); } },
         isDebug: false,
         prdtVersion: '',
         stringEmpty: stringEmpty,
@@ -3163,8 +3163,15 @@
             //等待动态加载js完成后开始
             bingo.using(function () {
                 var view = bingo.rootView(), node = view.$node();
+                view.onReadyAll(function () {
+                    bingo.__readyE.end();
+                });
                 bingo.compile(view).fromNode(node).compile();
-            });
+            }, bingo.usingPriority.NormalAfter);
+        },
+        __readyE:bingo.Event(),
+        ready: function (fn) {
+            this.__readyE.on(fn);
         }
     });
 
@@ -3708,12 +3715,12 @@
                 var attrValue = attr.$prop();
                 try {
                     var retScript = [hasReturn ? 'return ' : '', attrValue, ';'].join('');
-                    return contextCache[cacheName] = (new Function('$view', '$node', '$withData', 'bingo', [
+                    return contextCache[cacheName] = (new Function('$view', 'node', '$withData', 'bingo', [
                         'with ($view) {',
                             //如果有withData, 影响性能
                             withData ? 'with ($withData) {' : '',
                                 //this为$node
-                                'return bingo.proxy($node, function (event) {',
+                                'return bingo.proxy(node, function (event) {',
                                     //如果有返回值, 启动try..catch, 影响性能
                                     hasReturn ? [
                                     'try {',
@@ -3773,7 +3780,7 @@
                 /// </summary>
                 /// <param name="event">可选, 事件</param>
                 var withData = this.getWithData();
-                var fn = _priS.evalScriptContextFun(this, false, this.view(), this.node, withData);
+                var fn = _priS.evalScriptContextFun(this, false, this.view(), this.node(), withData);
                 return fn(event);
             },
             $results: function (event) {
@@ -3782,7 +3789,7 @@
                 /// </summary>
                 /// <param name="event">可选, 事件</param>
                 var withData = this.getWithData();
-                var fn = _priS.evalScriptContextFun(this, true, this.view(), this.node, withData);
+                var fn = _priS.evalScriptContextFun(this, true, this.view(), this.node(), withData);
                 var res = fn(event);
                 return this.$filter(res);
             },
@@ -4142,7 +4149,7 @@
                     if ($this.isDisposed) return;
                     callback && callback();
                     $this._decReadyDep();
-                });
+                }, bingo.usingPriority.NormalAfter);
                 return this;
             },
             $timeout: function (callback, time) {
@@ -5582,6 +5589,9 @@
         return o;
     };
 
+    bingo.location.onHref = bingo.Event();
+    bingo.location.onLoaded = bingo.Event();
+
     var _locationClass = bingo.location.Class = bingo.Class(bingo.linkToDom.LinkToDomClass, function () {
 
         this.Prop({
@@ -5617,6 +5627,7 @@
                 var $this = this;
                 this.isRoute() && callback && this.ownerNode().on('bg-location-loaded', function (e, url) {
                     callback.call($this, url);
+                    bingo.location.onLoaded.trigger([$this]);
                 });
             },
             url: function () {
@@ -5859,7 +5870,7 @@
         bg-click="helper.click"     //绑定到方法
         bg-click="helper.click()"   //直接执行方法
     */
-    bingo.each('event,click,blur,dblclick,focus,focusin,focusout,keydown,keypress,keyup,mousedown,mouseenter,mouseleave,mousemove,mouseout,mouseover,mouseup,resize,scroll,select,submit,contextmenu'.split(','), function (eventName) {
+    bingo.each('event,click,blur,change,dblclick,focus,focusin,focusout,keydown,keypress,keyup,mousedown,mouseenter,mouseleave,mousemove,mouseout,mouseover,mouseup,resize,scroll,select,submit,contextmenu'.split(','), function (eventName) {
         bingo.command('bg-' + eventName, function () {
 
             return ['$view', '$node', '$attr', function ($view, $node, $attr) {
@@ -6082,15 +6093,17 @@
 
     $(function () {
         $(document.documentElement).on('click', '[href]', function () {
-            if (!bingo.location) return;
             var jo = $(this);
             var href = jo.attr('href');
             if (href.indexOf('#') >= 0) {
-                var $location = bingo.location(this);
-                var target = jo.attr('bg-target');
                 href = href.split('#');
-                href = href[href.length - 1];
-                $location.href(href, target);
+                href = href[href.length - 1].replace(/^[#\s]+/, '');
+                if (!bingo.isNullEmpty(href)) {
+                    var target = jo.attr('bg-target');
+                    if (bingo.location.onHref.trigger([jo, href, target]) === false) return;
+                    var $loc = bingo.location(this);
+                    $loc.href(href, target);
+                }
             }
         });
     });

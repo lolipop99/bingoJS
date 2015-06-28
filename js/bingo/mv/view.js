@@ -212,7 +212,7 @@
                     if ($this.isDisposed) return;
                     callback && callback();
                     $this._decReadyDep();
-                });
+                }, bingo.usingPriority.NormalAfter);
                 return this;
             },
             $timeout: function (callback, time) {

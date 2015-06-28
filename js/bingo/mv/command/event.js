@@ -6,7 +6,7 @@
         bg-click="helper.click"     //绑定到方法
         bg-click="helper.click()"   //直接执行方法
     */
-    bingo.each('event,click,blur,dblclick,focus,focusin,focusout,keydown,keypress,keyup,mousedown,mouseenter,mouseleave,mousemove,mouseout,mouseover,mouseup,resize,scroll,select,submit,contextmenu'.split(','), function (eventName) {
+    bingo.each('event,click,blur,change,dblclick,focus,focusin,focusout,keydown,keypress,keyup,mousedown,mouseenter,mouseleave,mousemove,mouseout,mouseover,mouseup,resize,scroll,select,submit,contextmenu'.split(','), function (eventName) {
         bingo.command('bg-' + eventName, function () {
 
             return ['$view', '$node', '$attr', function ($view, $node, $attr) {

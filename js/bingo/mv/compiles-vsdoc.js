@@ -18,6 +18,13 @@
             /// <param name="url"></param>
             /// <param name="view">可选， 当前view</param>
             return _tmplClass.NewObject().url(url).view(view);
+        },
+        ready: function (fn) {
+            /// <summary>
+            /// 准备好
+            /// </summary>
+            /// <param name="fn"></param>
+            fn && fn.call(this);
         }
     });
 
