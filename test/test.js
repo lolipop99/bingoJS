@@ -12,6 +12,7 @@
             console.log('onAAA', _id, arguments, this);
         });
 
+
         this.onDispose(function () {
             console.log('onDispose', _id, arguments, this);
         });
