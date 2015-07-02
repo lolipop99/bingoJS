@@ -1,8 +1,8 @@
 参考文档：[http://bingojs.mydoc.io/](http://bingojs.mydoc.io/)
 
-库包下载：[https://git.oschina.net/bingoJS/bingoJS/blob/master/bingo.zip?dir=0&filepath=bingo.zip](https://git.oschina.net/bingoJS/bingoJS/blob/master/bingo.zip)
+库包下载：[https://git.oschina.net/bingoJS/bingoJS/blob/master/bingo.zip](https://git.oschina.net/bingoJS/bingoJS/blob/master/bingo.zip)
 
-三种开发规划方式(开发模式)Demo:[https://git.oschina.net/bingoJS/bingoJS/tree/master/demo](https://git.oschina.net/bingoJS/bingoJS/tree/master/demo)
+Demo:[https://git.oschina.net/bingoJS/bingoJS/tree/master/demo](https://git.oschina.net/bingoJS/bingoJS/tree/master/demo)
 
 更新记录:[http://git.oschina.net/bingoJS/bingoJS/blob/master/history.md](http://git.oschina.net/bingoJS/bingoJS/blob/master/history.md)
 
