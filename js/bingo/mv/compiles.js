@@ -239,6 +239,8 @@
                 attrList.push({ aName: tagName, aVal: null, type: 'node', command: command });
             } else {
                 //attr
+
+                //在 IE 8 以及更早的版本中，attributes 属性会返回元素所有可能属性的集合。
                 var attributes = node.attributes;
                 if (attributes && attributes.length > 0) {
 
@@ -640,15 +642,40 @@
                 var fn = _priS.evalScriptContextFun(this, false, this.view(), this.node(), withData);
                 return fn(event);
             },
+            $resultsNoFilter: function (event) {
+                /// <summary>
+                /// 执行内容, 一定会返回结果, 不会报出错误, 没有经过过滤器
+                /// </summary>
+                /// <param name="event">可选, 事件</param>
+                var withData = this.getWithData();
+                var fn = _priS.evalScriptContextFun(this, true, this.view(), this.node(), withData);
+                return fn(event);
+            },
             $results: function (event) {
                 /// <summary>
                 /// 执行内容, 一定会返回结果, 不会报出错误
                 /// </summary>
                 /// <param name="event">可选, 事件</param>
-                var withData = this.getWithData();
-                var fn = _priS.evalScriptContextFun(this, true, this.view(), this.node(), withData);
-                var res = fn(event);
+               
+                var res = this.$resultsNoFilter(event);
                 return this.$filter(res);
+            },
+            $getValNoFilter: function () {
+                var name = this.$prop();
+                var tname = name, tobj = this.getWithData();
+                var val;
+                if (tobj) {
+                    val = bingo.datavalue(tobj, tname);
+                }
+                if (bingo.isUndefined(val)) {
+                    tobj = this.view();
+                    val = bingo.datavalue(tobj, tname);
+                }
+                if (bingo.isUndefined(val)) {
+                    tobj = window;
+                    val = bingo.datavalue(tobj, tname);
+                }
+                return val;
             },
             //返回withData/$view/window属性值
             $value: function (value) {

@@ -120,7 +120,7 @@
         if (len == 0)
             return this._factorys;
         else if (len == 1) {
-            return bingo.factory.factoryClass.NewObject().setFactory(name);
+            return bingo.factory.factoryClass.NewObject().setFactory(name).inject();
         } else {
             if (fn) {
                 _lastModule = this;

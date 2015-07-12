@@ -8,7 +8,7 @@
     bingo.command('bg-action', function () {
 
         return {
-            //优先级, 越大越前
+            //优先级, 越大越前, 默认50
             priority: 1000,
             //模板
             tmpl: '',
@@ -29,7 +29,7 @@
             action: null,
             //link
             link: null,
-            //编译, (compilePre编译前-->compile编译-->action初始数据-->link连接command)
+            //编译, (compilePre编译前-->action初始数据-->compile编译-->link连接command)
             compile: ['$view', '$compile', '$node', '$attr', function ($view, $compile, $node, $attr) {
                 /// <param name="$view" value="bingo.view.viewClass()"></param>
                 /// <param name="$compile" value="function(){return bingo.compile();}"></param>

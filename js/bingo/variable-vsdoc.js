@@ -88,17 +88,20 @@
             /// <summary>
             /// 赋值事件(当在赋值时, 不理值是否改变, 都发送事件)
             /// </summary>
-            /// <param name="callback" type="function(value)" value='callback.call(this, this.$get())'></param>
+            /// <param name="callback" type="function(value)"></param>
             /// <param name="disposer">可选， 当disposer.isDisposed时自动释放</param>
 
+            bingo.isFunction(callback) && intellisenseSetCallContext(callback, this, [this.$get()]);
             return this;
         },
         $subs: function (callback, disposer) {
             /// <summary>
             /// 改变值事件(当在赋值时, 只有值改变了, 才发送事件)
             /// </summary>
-            /// <param name="callback" type="function(value)" value='callback.call(this, this.$get())'></param>
+            /// <param name="callback" type="function(value)"></param>
             /// <param name="disposer">可选， 当disposer.isDisposed时自动释放</param>
+
+            bingo.isFunction(callback) && intellisenseSetCallContext(callback, this, [this.$get()]);
             return this;
         },
         //设置修改状态

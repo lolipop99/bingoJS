@@ -109,12 +109,19 @@
                     name = '';
                 }
                 else {
-                    var moduleI = bingo.getModuleByView(this.view());
+                    var hasMN = name.indexOf('$') > 0, moduleName = '', nameT = name;
+                    if (hasMN) {
+                        moduleName = name.split('$');
+                        nameT = moduleName[1];
+                        moduleName = moduleName[0];
+                    }
+
+                    var moduleI = hasMN ? bingo.module(moduleName) : bingo.getModuleByView(this.view());
                     var moduleDefault = bingo.defaultModule();
                     var factorys = moduleI.factory();
                     var factorys2 = moduleDefault == moduleI ? null : moduleDefault.factory();
 
-                    fn = factorys[name] || (factorys2 && factorys2[name]) || moduleI.service(name) || (moduleDefault == moduleI ? null : moduleDefault.service(name));
+                    fn = factorys[nameT] || (factorys2 && factorys2[nameT]) || moduleI.service(nameT) || (moduleDefault == moduleI ? null : moduleDefault.service(nameT));
                     fn && (fn = _makeInjectAttrs(fn));
                     //_makeInjectAttrs
                 }

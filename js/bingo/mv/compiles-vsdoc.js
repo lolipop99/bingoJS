@@ -131,11 +131,24 @@
                 /// <param name="event">可选, 事件</param>
                 return {};
             },
+            $resultsNoFilter: function (event) {
+                /// <summary>
+                /// 执行内容, 一定会返回结果, 不会报出错误, 没有经过过滤器
+                /// </summary>
+                /// <param name="event">可选, 事件</param>
+                return {};
+            },
             $results: function (event) {
                 /// <summary>
                 /// 执行内容, 一定会返回结果, 不会报出错误
                 /// </summary>
                 /// <param name="event">可选, 事件</param>
+                return {};
+            },
+            $getValNoFilter: function () {
+                /// <summary>
+                /// 返回withData/$view/window属性值, 没有经过过滤器
+                /// </summary>
                 return {};
             },
             //返回withData/$view/window属性值

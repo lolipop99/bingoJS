@@ -82,17 +82,22 @@
             /// <param name="servers" value='_ajaxClass.NewObject()'></param>
             var view = servers.view();
             if (servers.isDisposed || (view && view.isDisposed)) { _disposeEnd(servers); return; }
-            var datas = bingo.clone(servers.param() || {});
+            var holdParams = servers.holdParams();
+            var datas = bingo.clone(holdParams ? holdParams.call(servers) : (servers.param() || {}));
 
             var holdServer = servers.holdServer() || _ajaxClass.holdServer,
                 deferred = servers.deferred();
 
             var cacheMG = null,
-                url = servers.url();
+                url = servers.url(),
+                cKey = '';
             var cacheTo = servers.cacheTo();
             if (cacheTo) {
-                var cKey = servers.cacheQurey() ? url : url.split('?')[0];
-                cacheMG = bingo.cacheToObject(cacheTo).max(servers.cacheMax()).key(cKey.toLowerCase());
+                cKey = servers.cacheQurey() ? url : url.split('?')[0];
+                if (!bingo.equals(datas, {}))
+                    cKey = [cKey, window.JSON ? JSON.stringify(datas) : $.getJSON(datas)].join('_');
+                cKey = cKey.toLowerCase();
+                cacheMG = bingo.cacheToObject(cacheTo).max(servers.cacheMax()).key(cKey);
                 if (cacheMG.has()) {
                     var cacheData = cacheMG.get();
                     if (bingo.isObject(cacheData)) cacheData = bingo.clone(cacheData);
@@ -119,7 +124,7 @@
                             response = hL[0], status = hL[1], xhr = hL[2];
 
                             if (status === true) {
-                                cacheMG && cacheMG.set(response)
+                                cacheMG && cacheMG.key(cKey).set(response)
                                 deferred.resolveWith(servers, [response]);
                             } else
                                 deferred.rejectWith(servers, [response, false, xhr]);
@@ -157,7 +162,8 @@
             //缓存数量， 小于等于0, 不限制数据
             cacheMax: -1,
             cacheQurey: true,
-            holdServer:null
+            holdServer: null,
+            holdParams:null
         });
 
         this.Define({

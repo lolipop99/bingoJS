@@ -1,3 +1,23 @@
+#### 1.1.713
+1. 添加service和factory名称，如果$不是第一位，认为包函module名称, 如: demo$testSrv认为module('deml').serivce('testSrv')
+
+2. 优化编译机制
+
+3. 优化ajax缓存机制
+
+4. 添加ajax holdParams属性处理参数问题
+```script
+bingo.ajax('').holdParams(function () {
+    //param 可以改变param内容
+    return this.param()
+})
+```
+5. 添加$attr.$resultsNoFilter和$attr.$getValNoFilter方法，提升variable绑定性能
+
+6. 添加bg-enabled模板指令
+
+7. bg-html 支持自动编译html内容(原来不编译)， 如果不想自动编译请用{{}}标签
+
 #### 1.1.0629
 1. 优化代码
 
@@ -90,7 +110,7 @@ bingo.ajax.ajaxClass.holdServer = function (ajax, response, isSuccess, xhr) {
 4. 强化bingo.model
 5. 解决ajax请求error时，$view.onReady事件没有发出问题
 6. 优化observer
-7. 添加事件工
+7. 添加事件
 8. 添加clearObject对子object.$clearAuto支持
 9. 优化bingo.compile, 并onCompilePre和onCompiled事件传送参数为一个jQuery对象
 10. 增强模板指令bg-route与location, location: 添加views方法，修改frame为ownerNode, 将bg-route-name统一改为bg-name, 将params修改为queryParams), 添加close方法,onCloseBefore和onClosed事件, 添加isRoute和name属性

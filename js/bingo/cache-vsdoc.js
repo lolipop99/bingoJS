@@ -27,6 +27,7 @@
                 if (arguments.length == 0)
                     return ' ';
                 else {
+                    this._key = bingo.sliceArray(arguments, 0).join('_');
                     return this;
                 }
             },
@@ -34,13 +35,15 @@
                 /// <summary>
                 /// 取得值, bingo.cache(obj).key('bbbb').get()
                 /// </summary>
-                return this.context();
+                var context = this.context();
+                return context ? context() : this._datas[this._key];
             },
             'set': function (value) {
                 /// <summary>
                 /// 设置缓存, bingo.cache(obj).key('bbbb').set('11111');
                 /// </summary>
                 /// <param name="value">值</param>
+                this._datas[this._key] = value;
                 return this;
             },
             has: function () {
@@ -64,7 +67,7 @@
         });
 
         this.Initialization(function () {
-            this._datas = [];
+            this._datas = {};
         });
 
     });

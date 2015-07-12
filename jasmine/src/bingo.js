@@ -2574,12 +2574,19 @@
                     name = '';
                 }
                 else {
-                    var moduleI = bingo.getModuleByView(this.view());
+                    var hasMN = name.indexOf('$') > 0, moduleName = '', nameT = name;
+                    if (hasMN) {
+                        moduleName = name.split('$');
+                        nameT = moduleName[1];
+                        moduleName = moduleName[0];
+                    }
+
+                    var moduleI = hasMN ? bingo.module(moduleName) : bingo.getModuleByView(this.view());
                     var moduleDefault = bingo.defaultModule();
                     var factorys = moduleI.factory();
                     var factorys2 = moduleDefault == moduleI ? null : moduleDefault.factory();
 
-                    fn = factorys[name] || (factorys2 && factorys2[name]) || moduleI.service(name) || (moduleDefault == moduleI ? null : moduleDefault.service(name));
+                    fn = factorys[nameT] || (factorys2 && factorys2[nameT]) || moduleI.service(nameT) || (moduleDefault == moduleI ? null : moduleDefault.service(nameT));
                     fn && (fn = _makeInjectAttrs(fn));
                     //_makeInjectAttrs
                 }
@@ -2941,17 +2948,22 @@
             /// <param name="servers" value='_ajaxClass.NewObject()'></param>
             var view = servers.view();
             if (servers.isDisposed || (view && view.isDisposed)) { _disposeEnd(servers); return; }
-            var datas = bingo.clone(servers.param() || {});
+            var holdParams = servers.holdParams();
+            var datas = bingo.clone(holdParams ? holdParams.call(servers) : (servers.param() || {}));
 
             var holdServer = servers.holdServer() || _ajaxClass.holdServer,
                 deferred = servers.deferred();
 
             var cacheMG = null,
-                url = servers.url();
+                url = servers.url(),
+                cKey = '';
             var cacheTo = servers.cacheTo();
             if (cacheTo) {
-                var cKey = servers.cacheQurey() ? url : url.split('?')[0];
-                cacheMG = bingo.cacheToObject(cacheTo).max(servers.cacheMax()).key(cKey.toLowerCase());
+                cKey = servers.cacheQurey() ? url : url.split('?')[0];
+                if (!bingo.equals(datas, {}))
+                    cKey = [cKey, window.JSON ? JSON.stringify(datas) : $.getJSON(datas)].join('_');
+                cKey = cKey.toLowerCase();
+                cacheMG = bingo.cacheToObject(cacheTo).max(servers.cacheMax()).key(cKey);
                 if (cacheMG.has()) {
                     var cacheData = cacheMG.get();
                     if (bingo.isObject(cacheData)) cacheData = bingo.clone(cacheData);
@@ -2978,7 +2990,7 @@
                             response = hL[0], status = hL[1], xhr = hL[2];
 
                             if (status === true) {
-                                cacheMG && cacheMG.set(response)
+                                cacheMG && cacheMG.key(cKey).set(response)
                                 deferred.resolveWith(servers, [response]);
                             } else
                                 deferred.rejectWith(servers, [response, false, xhr]);
@@ -3016,7 +3028,8 @@
             //缓存数量， 小于等于0, 不限制数据
             cacheMax: -1,
             cacheQurey: true,
-            holdServer:null
+            holdServer: null,
+            holdParams:null
         });
 
         this.Define({
@@ -3382,6 +3395,8 @@
                 attrList.push({ aName: tagName, aVal: null, type: 'node', command: command });
             } else {
                 //attr
+
+                //在 IE 8 以及更早的版本中，attributes 属性会返回元素所有可能属性的集合。
                 var attributes = node.attributes;
                 if (attributes && attributes.length > 0) {
 
@@ -3783,15 +3798,40 @@
                 var fn = _priS.evalScriptContextFun(this, false, this.view(), this.node(), withData);
                 return fn(event);
             },
+            $resultsNoFilter: function (event) {
+                /// <summary>
+                /// 执行内容, 一定会返回结果, 不会报出错误, 没有经过过滤器
+                /// </summary>
+                /// <param name="event">可选, 事件</param>
+                var withData = this.getWithData();
+                var fn = _priS.evalScriptContextFun(this, true, this.view(), this.node(), withData);
+                return fn(event);
+            },
             $results: function (event) {
                 /// <summary>
                 /// 执行内容, 一定会返回结果, 不会报出错误
                 /// </summary>
                 /// <param name="event">可选, 事件</param>
-                var withData = this.getWithData();
-                var fn = _priS.evalScriptContextFun(this, true, this.view(), this.node(), withData);
-                var res = fn(event);
+               
+                var res = this.$resultsNoFilter(event);
                 return this.$filter(res);
+            },
+            $getValNoFilter: function () {
+                var name = this.$prop();
+                var tname = name, tobj = this.getWithData();
+                var val;
+                if (tobj) {
+                    val = bingo.datavalue(tobj, tname);
+                }
+                if (bingo.isUndefined(val)) {
+                    tobj = this.view();
+                    val = bingo.datavalue(tobj, tname);
+                }
+                if (bingo.isUndefined(val)) {
+                    tobj = window;
+                    val = bingo.datavalue(tobj, tname);
+                }
+                return val;
             },
             //返回withData/$view/window属性值
             $value: function (value) {
@@ -4008,8 +4048,8 @@
             },
             _handel: function () {
 
-                this._compile();//编译指令
                 this._action();//根据action做初始
+                this._compile();//编译指令
                 this._link();//连接指令
 
                 this._handleChild();//处理子级
@@ -4466,14 +4506,24 @@
                 return this;
             },
             $subsResults: function (p, deep) {
+                var isV = false;
                 return this.$subs(bingo.proxy(this, function () {
-                    return this.$results();
-                }), p, deep);
+                    var res = this.$resultsNoFilter();
+                    isV = bingo.isVariable(res);
+                    return isV ? res : this.$filter(res);
+                }), bingo.proxy(this,function (value) {
+                    p && (p.call(this, isV ? this.$filter(value) : value));
+                }), deep);
             },
             $subsValue: function (p, deep) {
+                var isV = false;
                 return this.$subs(bingo.proxy(this, function () {
-                    return this.$value();
-                }), p, deep);
+                    var res = this.$getValNoFilter();
+                    isV = bingo.isVariable(res);
+                    return isV ? res : this.$filter(res);
+                }), bingo.proxy(this, function (value) {
+                    p && (p.call(this, isV ? this.$filter(value) : value));
+                }), deep);
             },
             _init: function () {
                 this.__isinit = true;
@@ -5719,7 +5769,7 @@
     bingo.command('bg-action', function () {
 
         return {
-            //优先级, 越大越前
+            //优先级, 越大越前, 默认50
             priority: 1000,
             //模板
             tmpl: '',
@@ -5740,7 +5790,7 @@
             action: null,
             //link
             link: null,
-            //编译, (compilePre编译前-->compile编译-->action初始数据-->link连接command)
+            //编译, (compilePre编译前-->action初始数据-->compile编译-->link连接command)
             compile: ['$view', '$compile', '$node', '$attr', function ($view, $compile, $node, $attr) {
                 /// <param name="$view" value="bingo.view.viewClass()"></param>
                 /// <param name="$compile" value="function(){return bingo.compile();}"></param>
@@ -5810,7 +5860,7 @@
         bg-checked="true" //直接表达式
         bg-checked="helper.checked" //绑定到变量, 双向绑定
     */
-    bingo.each('attr,prop,src,checked,disabled,readonly,class'.split(','), function (attrName) {
+    bingo.each('attr,prop,src,checked,disabled,enabled,readonly,class'.split(','), function (attrName) {
         bingo.command('bg-' + attrName, function () {
 
             return ['$view', '$attr', '$node', function ($view, $attr, $node) {
@@ -5826,6 +5876,9 @@
                             break;
                         case 'prop':
                             $node.prop(val);
+                            break;
+                        case 'enabled':
+                            $node.prop('disabled', !val);
                             break;
                         case 'disabled':
                         case 'readonly':
@@ -6114,11 +6167,12 @@
 
     //bg-html="'<br />'" | bg-html="datas.html"
     bingo.command('bg-html', function () {
-        return ['$attr', '$node', function ($attr, $node) {
+        return ['$attr', '$node', '$compile', function ($attr, $node, $compile) {
             /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
             /// <param name="$node" value="$([])"></param>
             var _set = function (val) {
                 $node.html(bingo.toStr(val));
+                $compile().fromJquery($node).compile();
             };
             $attr.$subsResults(function (newValue) {
                 _set(newValue);
@@ -6141,16 +6195,23 @@
                 /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
                 /// <param name="$node" value="$([])"></param>
 
-                var jo = $($node);
-                var html = jo.html();
-                jo.html(''); jo = null;
-                $attr.$subsResults(function (newValue) {
-                    if (newValue) {
+                var html = $node.html();
+
+                var _set = function (value) {
+                    $node.html('');
+                    if (value) {
                         $node.show();
                         $compile().fromHtml(html).appendTo($node).compile();
                     } else
-                        $node.html('').hide();
-                    //console.log('if ', newValue, html);
+                        $node.hide();
+                };
+
+                $attr.$subsResults(function (newValue) {
+                    _set(newValue);
+                });
+
+                $attr.$initResults(function (value) {
+                    _set(value);
                 });
 
             }]

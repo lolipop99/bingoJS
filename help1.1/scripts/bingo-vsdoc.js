@@ -625,17 +625,20 @@ window.intellisenseLogMessage = function (msg) {
             /// <summary>
             /// 赋值事件(当在赋值时, 不理值是否改变, 都发送事件)
             /// </summary>
-            /// <param name="callback" type="function(value)" value='callback.call(this, this.$get())'></param>
+            /// <param name="callback" type="function(value)"></param>
             /// <param name="disposer">可选， 当disposer.isDisposed时自动释放</param>
 
+            bingo.isFunction(callback) && intellisenseSetCallContext(callback, this, [this.$get()]);
             return this;
         },
         $subs: function (callback, disposer) {
             /// <summary>
             /// 改变值事件(当在赋值时, 只有值改变了, 才发送事件)
             /// </summary>
-            /// <param name="callback" type="function(value)" value='callback.call(this, this.$get())'></param>
+            /// <param name="callback" type="function(value)"></param>
             /// <param name="disposer">可选， 当disposer.isDisposed时自动释放</param>
+
+            bingo.isFunction(callback) && intellisenseSetCallContext(callback, this, [this.$get()]);
             return this;
         },
         //设置修改状态
@@ -1490,6 +1493,7 @@ window.intellisenseLogMessage = function (msg) {
         	/// <param name="callback">加载完成后</param>
             /// <param name="priority">优先级</param>
 
+            bingo.isFunction(callback) && callback();
 
             //if (arguments.length <= 0) return;
             //var item = null;
@@ -1672,6 +1676,7 @@ window.intellisenseLogMessage = function (msg) {
                 if (arguments.length == 0)
                     return ' ';
                 else {
+                    this._key = bingo.sliceArray(arguments, 0).join('_');
                     return this;
                 }
             },
@@ -1679,13 +1684,15 @@ window.intellisenseLogMessage = function (msg) {
                 /// <summary>
                 /// 取得值, bingo.cache(obj).key('bbbb').get()
                 /// </summary>
-                return this.context();
+                var context = this.context();
+                return context ? context() : this._datas[this._key];
             },
             'set': function (value) {
                 /// <summary>
                 /// 设置缓存, bingo.cache(obj).key('bbbb').set('11111');
                 /// </summary>
                 /// <param name="value">值</param>
+                this._datas[this._key] = value;
                 return this;
             },
             has: function () {
@@ -1709,7 +1716,7 @@ window.intellisenseLogMessage = function (msg) {
         });
 
         this.Initialization(function () {
-            this._datas = [];
+            this._datas = {};
         });
 
     });
@@ -1882,7 +1889,7 @@ window.intellisenseLogMessage = function (msg) {
         if (len == 0)
             return this._factorys;
         else if (len == 1) {
-            return bingo.factory.factoryClass.NewObject().setFactory(name);
+            return bingo.factory.factoryClass.NewObject().setFactory(name).inject();
         } else {
             if (fn) {
                 _lastModule = this;
@@ -2179,21 +2186,25 @@ window.intellisenseLogMessage = function (msg) {
                     name = '';
                 }
                 else {
-                    var moduleI = bingo.getModuleByView(this.view());
+                    var hasMN = name.indexOf('$') > 0, moduleName = '', nameT = name;
+                    if (hasMN) {
+                        moduleName = name.split('$');
+                        nameT = moduleName[1];
+                        moduleName = moduleName[0];
+                    }
+
+                    var moduleI = hasMN ? bingo.module(moduleName) : bingo.getModuleByView(this.view());
                     //intellisenseLogMessage('moduleI', bingo.isNull(moduleI));
 
                     var moduleDefault = bingo.defaultModule();
                     var factorys = moduleI.factory();
                     var factorys2 = moduleDefault == moduleI ? null : moduleDefault.factory();
 
-                    fn = factorys[name] || (factorys2 && factorys2[name]) || moduleI.service(name) || (moduleDefault == moduleI ? null : moduleDefault.service(name));
-
-                    //var factorys = moduleI.factory();
-                    //fn = factorys[name] || moduleI.service(name);
+                    fn = factorys[nameT] || (factorys2 && factorys2[nameT]) || moduleI.service(nameT) || (moduleDefault == moduleI ? null : moduleDefault.service(nameT));
                     fn && (fn = _makeInjectAttrs(fn));
                 }
                 this.name(name).fn(fn);
-                this.inject();
+                //this.inject();
                 //intellisenseSetCallContext(fn, this, [{}]);
 
                 return this;
@@ -2478,7 +2489,9 @@ window.intellisenseLogMessage = function (msg) {
             //是否包函url query部分作为key 缓存数据, 默认true
             cacheQurey: true,
             //hold server数据, function(response, isSuccess, xhr){return return [response, isSuccess, xhr];}
-            holdServer: null
+            holdServer: null,
+            //处理参数, function(){ return this.param()}
+            holdParams: null
         });
 
         this.Define({
@@ -2693,11 +2706,24 @@ window.intellisenseLogMessage = function (msg) {
                 /// <param name="event">可选, 事件</param>
                 return {};
             },
+            $resultsNoFilter: function (event) {
+                /// <summary>
+                /// 执行内容, 一定会返回结果, 不会报出错误, 没有经过过滤器
+                /// </summary>
+                /// <param name="event">可选, 事件</param>
+                return {};
+            },
             $results: function (event) {
                 /// <summary>
                 /// 执行内容, 一定会返回结果, 不会报出错误
                 /// </summary>
                 /// <param name="event">可选, 事件</param>
+                return {};
+            },
+            $getValNoFilter: function () {
+                /// <summary>
+                /// 返回withData/$view/window属性值, 没有经过过滤器
+                /// </summary>
                 return {};
             },
             //返回withData/$view/window属性值

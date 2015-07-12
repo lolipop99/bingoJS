@@ -8,16 +8,23 @@
                 /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
                 /// <param name="$node" value="$([])"></param>
 
-                var jo = $($node);
-                var html = jo.html();
-                jo.html(''); jo = null;
-                $attr.$subsResults(function (newValue) {
-                    if (newValue) {
+                var html = $node.html();
+
+                var _set = function (value) {
+                    $node.html('');
+                    if (value) {
                         $node.show();
                         $compile().fromHtml(html).appendTo($node).compile();
                     } else
-                        $node.html('').hide();
-                    //console.log('if ', newValue, html);
+                        $node.hide();
+                };
+
+                $attr.$subsResults(function (newValue) {
+                    _set(newValue);
+                });
+
+                $attr.$initResults(function (value) {
+                    _set(value);
                 });
 
             }]

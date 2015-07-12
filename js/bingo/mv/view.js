@@ -71,8 +71,8 @@
             },
             _handel: function () {
 
-                this._compile();//编译指令
                 this._action();//根据action做初始
+                this._compile();//编译指令
                 this._link();//连接指令
 
                 this._handleChild();//处理子级
@@ -529,14 +529,24 @@
                 return this;
             },
             $subsResults: function (p, deep) {
+                var isV = false;
                 return this.$subs(bingo.proxy(this, function () {
-                    return this.$results();
-                }), p, deep);
+                    var res = this.$resultsNoFilter();
+                    isV = bingo.isVariable(res);
+                    return isV ? res : this.$filter(res);
+                }), bingo.proxy(this,function (value) {
+                    p && (p.call(this, isV ? this.$filter(value) : value));
+                }), deep);
             },
             $subsValue: function (p, deep) {
+                var isV = false;
                 return this.$subs(bingo.proxy(this, function () {
-                    return this.$value();
-                }), p, deep);
+                    var res = this.$getValNoFilter();
+                    isV = bingo.isVariable(res);
+                    return isV ? res : this.$filter(res);
+                }), bingo.proxy(this, function (value) {
+                    p && (p.call(this, isV ? this.$filter(value) : value));
+                }), deep);
             },
             _init: function () {
                 this.__isinit = true;

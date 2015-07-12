@@ -7,7 +7,7 @@
         bg-checked="true" //直接表达式
         bg-checked="helper.checked" //绑定到变量, 双向绑定
     */
-    bingo.each('attr,prop,src,checked,disabled,readonly,class'.split(','), function (attrName) {
+    bingo.each('attr,prop,src,checked,disabled,enabled,readonly,class'.split(','), function (attrName) {
         bingo.command('bg-' + attrName, function () {
 
             return ['$view', '$attr', '$node', function ($view, $attr, $node) {
@@ -23,6 +23,9 @@
                             break;
                         case 'prop':
                             $node.prop(val);
+                            break;
+                        case 'enabled':
+                            $node.prop('disabled', !val);
                             break;
                         case 'disabled':
                         case 'readonly':

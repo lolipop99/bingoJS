@@ -24,6 +24,7 @@
         	/// <param name="callback">加载完成后</param>
             /// <param name="priority">优先级</param>
 
+            bingo.isFunction(callback) && callback();
 
             //if (arguments.length <= 0) return;
             //var item = null;
