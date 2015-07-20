@@ -4,7 +4,7 @@
     "use strict";
 
     /*
-        //定义action与service:
+    bingo.app('sip', function(){
     
         //定义system/user/list 和 system/user/form 两个action
         bingo.module('system', function () {
@@ -50,6 +50,8 @@
             });
     
         });
+
+    });//end app
     
     */
 
@@ -164,10 +166,14 @@
         if (bingo.isFunction(fn)) {
             var hasLM = _lastModule
             !hasLM && (_lastModule = this);
+            var hasApp = _lastApp;
+            !hasApp && (_lastApp = _lastModule.app);
+
             _lastContoller = conroller;
             fn.call(conroller);
             _lastContoller = null;
             !hasLM && (_lastModule = null);
+            !hasApp && (_lastApp = null);
         }
         return conroller;
     }, _actionFn = function (name, fn) {
@@ -200,15 +206,63 @@
             return this._actions[name] = fn;
         }
     }, _getLastModule = function () {
-        return _lastModule || _defaultModule;
+        return _lastModule || bingo.defaultModule(_lastApp);
     }, _getModuleValue = function (prop, name) {
-        return this[prop][name] || (this != _defaultModule ? _defaultModule[prop][name] : null);
+        var val = this[prop][name];
+        if (!val) {
+            var defaultModule = bingo.defaultModule(this.app);
+            if (this != defaultModule)
+                val = defaultModule[prop][name]
+            if (!val && this.app != _defaultApp) {
+                var defaultModule = bingo.defaultModule();
+                if (this != defaultModule)
+                    val = defaultModule[prop][name]
+            }
+        }
+        return val;
     };
 
-    var _module = {}, _lastModule = null, _lastContoller = null;
+    var _moduleFn = function (name, fn) {
+        /// <summary>
+        /// 定义或获取模块
+        /// </summary>
+        /// <param name="name">定义或获取模块名称</param>
+        /// <param name="fn" type="function(injects..)">可选</param>
+        if (bingo.isNullEmpty(name)) return null;
+
+        var module = this._module[name];
+
+        if (!module)
+            module = this._module[name] = {
+                name: name, _services: {}, _controllers: {},
+                _commands: {}, _filters: {}, _factorys: {},
+                _actions: {}, action: _actionMDFn,
+                service: _serviceFn,
+                controller: _controllerFn,
+                command: _commandFn,
+                filter: _filterFn,
+                factory: _factoryFn,
+                app: this
+            };
+
+        if (bingo.isFunction(fn)) {
+            var hasApp = _lastApp;
+            !hasApp && (_lastApp = this);
+            _lastModule = module;
+            fn.call(module);
+            _lastModule = null;
+            !hasApp && (_lastApp = null);
+        }
+        return module;
+
+    }, _defaultModuleFn = function () {
+        return this.module('_$defaultModule$_');
+    };
+
+    var _app = {}, _module = {}, _lastApp = null, _lastModule = null, _lastContoller = null;
     bingo.extend({
-        defaultModule: function () {
-            return _defaultModule;
+        defaultModule: function (app) {
+            return app ? app.defaultModule() : _defaultApp.defaultModule();
         },
         getModuleByView: function (view) {
             return _lastModule || bingo.defaultModule();
@@ -219,31 +273,35 @@
             /// </summary>
             /// <param name="name">定义或获取模块名称</param>
             /// <param name="fn" type="function(injects..)">可选</param>
+            var app = _lastApp || _defaultApp;
+            return app.module.apply(app, arguments);
+        },
+        defaultApp: function () {
+            return _defaultApp;
+        },
+        getAppByView: function (view) { return this.getModuleByView(view).app; },
+        //定义或获取app
+        app: function (name, fn) {
             if (this.isNullEmpty(name)) return null;
             //if (arguments.length == 1)
             //    return _module[name];
 
-            var module = _module[name];
+            var app = _app[name];
 
-            if (!module) {
-                module = _module[name] = {
-                    name: name, _services: {}, _controllers: {},
-                    _commands: {}, _filters: {}, _factorys: {},
-                    _actions: {}, action: _actionMDFn,
-                    service: _serviceFn,
-                    controller: _controllerFn,
-                    command: _commandFn,
-                    filter: _filterFn,
-                    factory: _factoryFn
+            if (!app) {
+                app = _app[name] = {
+                    name: name, _module: {},
+                    module: _moduleFn,
+                    defaultModule: _defaultModuleFn
                 };
             }
 
             if (bingo.isFunction(fn)) {
-                _lastModule = module;
-                fn.call(module);
-                _lastModule = null;
+                _lastApp = app;
+                fn.call(app);
+                _lastApp = null;
             }
-            return module;
+            return app;
         },
         service: function (name, fn) {
             /// <summary>
@@ -251,7 +309,7 @@
             /// </summary>
             /// <param name="name">定义服务service名称</param>
             /// <param name="fn" type="function(injects..)"></param>
-            var lm = _lastModule || _defaultModule;
+            var lm = _getLastModule();
             return lm.service.apply(lm, arguments);
         },
         controller: function (name, fn) {
@@ -260,7 +318,7 @@
             /// </summary>
             /// <param name="name">定义服务service名称</param>
             /// <param name="fn" type="function(injects..)"></param>
-            var lm = _lastModule || _defaultModule;
+            var lm = _getLastModule();
             return lm.controller.apply(lm, arguments);
         },
         action: function (name, fn) {
@@ -277,24 +335,24 @@
             } else if (_lastContoller)
                 return _lastContoller.action.apply(_lastContoller, arguments);
             else {
-                var lm = _lastModule || _defaultModule;
+                var lm = _getLastModule();
                 return lm.action.apply(lm, arguments);
             }
         },
         command: function (name, fn) {
-            var lm = _lastModule || _defaultModule;
+            var lm = _getLastModule();
             return lm.command.apply(lm, arguments);
         },
         filter: function (name, fn) {
-            var lm = _lastModule || _defaultModule;
+            var lm = _getLastModule();
             return lm.filter.apply(lm, arguments);
         },
         factory: function (name, fn) {
-            var lm = _lastModule || _defaultModule;
+            var lm = _getLastModule();
             return lm.factory.apply(lm, arguments);
         }
     });
 
-    var _defaultModule = bingo.module('_$defaultModule$_');
+    var _defaultApp = bingo.app('_$defaultApp$_');
 
 })(bingo);

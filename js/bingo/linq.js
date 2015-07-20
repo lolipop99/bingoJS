@@ -208,6 +208,11 @@
                 this._doLastWhere(0, 1);
                 return this.count() > 0;
             },
+            index: function () {
+                var bl = this._datas;
+                var d = this.first();
+                return bingo.inArray(d, bl);
+            },
             sum: function (callback) {
                 this._doLastWhere();
                 if (!bingo.isFunction(callback)) {

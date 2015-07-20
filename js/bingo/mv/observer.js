@@ -37,12 +37,8 @@
                 var view = watch._view;
                 item.varo = _oldValue;
                 _oldValue.$subs(function (value) {
-                    if (!view.$isReady) //处理$isReady
-                        item.isChange = true;
-                    else {
-                        callback.call(item, value);
-                        watch.publishAsync();
-                    }
+                    callback.call(item, value);
+                    watch.publishAsync();
                 }, disposer || view);
             } else {
                 if (deep) _oldValue = bingo.clone(_oldValue);
@@ -62,11 +58,6 @@
         };
 
         var _varSub = function () {
-            if (this.isChange) {
-                //处理view.$isReady问题
-                this.varo.$setChange();
-                this.isChange = false;
-            }
             return false;
         }, _dispose = function () { bingo.clearObject(this); };
 

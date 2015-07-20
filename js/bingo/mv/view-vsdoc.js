@@ -56,7 +56,21 @@
                 /// <summary>
                 /// 获取module
                 /// </summary>
-                return this._module || bingo.defaultModule();
+                return this._module || bingo.defaultModule(this.$getApp());
+            },
+            $setApp: function (app) {
+                /// <summary>
+                /// 设置app
+                /// </summary>
+                /// <param name="app"></param>
+                app && (this._app = app);
+                return this;
+            },
+            $getApp: function () {
+                /// <summary>
+                /// 获取App
+                /// </summary>
+                return this._app || (this._module ? this._module.app : bingo.defaultApp());
             },
             $addAction: function (action) {
                 /// <summary>

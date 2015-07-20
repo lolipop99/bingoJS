@@ -151,6 +151,12 @@
                 /// </summary>
                 return true;
             },
+            index: function () {
+                /// <summary>
+                /// 索引
+                /// </summary>
+                return 1;
+            },
             sum: function (callback) {
                 /// <summary>
                 /// 求和

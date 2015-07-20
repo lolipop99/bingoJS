@@ -147,13 +147,20 @@
             },
             //end--处理readyAll
 
-            //设置module
+            //设置module_app
             $setModule: function (module) {
                 module && (this._module = module);
                 return this;
             },
             $getModule: function () {
-                return this._module || bingo.defaultModule();
+                return this._module || bingo.defaultModule(this.$getApp());
+            },
+            $setApp: function (app) {
+                app && (this._app = app);
+                return this;
+            },
+            $getApp: function () {
+                return this._app || (this._module ? this._module.app : bingo.defaultApp());
             },
             $addAction: function (action) {
                 action && this._actions.push(action);
@@ -242,6 +249,7 @@
             bingo.extend(this, {
                 $children: [],
                 _module: null,
+                _app:null,
                 _actions: []
             });
 

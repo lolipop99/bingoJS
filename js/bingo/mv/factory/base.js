@@ -146,7 +146,7 @@
 
     bingo.factory('$module', ['$view', function ($view) {
         return function (name) {
-            var module = arguments.length == 0 ? $view.$getModule() : bingo.module(name);
+            var module = arguments.length == 0 ? $view.$getModule() : $view.$getApp().module(name);
             return !module ? null : {
                 $service: function (name) {
                     var service = module.service(name);

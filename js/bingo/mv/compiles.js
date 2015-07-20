@@ -53,31 +53,7 @@
             node[this.compiledAttrName] = "1";
         },
         _makeCommand: function (command, view, node) {
-            //command = bingo.factory(command).view(view).node(node).inject();
-
-            //var opt = {
-            //    priority: 50,
-            //    tmpl: '',
-            //    tmplUrl: '',
-            //    replace: false,
-            //    include: false,
-            //    view: false,
-            //    compileChild: true
-            //    //action: null,
-            //    //compilePre: null,
-            //    //compile: null,
-            //    //link: null
-            //};
-            //if (bingo.isFunction(command) || bingo.isArray(command)) {
-            //    opt.link = command;
-            //} else
-            //    opt = bingo.extend(opt, command);
-
-            //opt.compilePre || (opt.compilePre = _injectNoop);
-            //opt.compile || (opt.compile = _injectNoop);
-            //opt.action || (opt.action = _injectNoop);
-            //opt.link || (opt.link = _injectNoop);
-
+            
             var opt = command;
 
             if (!bingo.isNullEmpty(opt.tmplUrl)) {
@@ -86,9 +62,6 @@
 
             if (opt.compilePre)
                 bingo.factory(opt.compilePre).view(view).node(node).inject();
-
-            //opt.compilePre = _makeInjectAttrs(opt.compilePre);
-            //bingo.inject(opt.compilePre, view, null, null, node);
 
             return opt;
         },
@@ -228,49 +201,63 @@
             var attrList = [], textTagList = [], compileChild = true;
             var tmpl = null, replace = false, include = false, isNewView = false;
             if (tagName == 'script') compileChild = false;
-            if (command) {
-                //node
-                command = _compiles._makeCommand(command, p.view, node);
+
+            var addAttr = function (attrList, command, attrName, attrVal, attrType) {
                 replace = command.replace;
                 include = command.include;
                 tmpl = command.tmpl;
-                isNewView = command.view;
+                isNewView || (isNewView = command.view);
                 (!compileChild) || (compileChild = command.compileChild);
-                attrList.push({ aName: tagName, aVal: null, type: 'node', command: command });
+                attrList.push({ aName: attrName, aVal: attrVal, type: attrType, command: command });
+            };
+
+            if (command) {
+                //node
+                command = _compiles._makeCommand(command, p.view, node);
+                addAttr(attrList, command, tagName, '', 'node');
             } else {
                 //attr
+
 
                 //在 IE 8 以及更早的版本中，attributes 属性会返回元素所有可能属性的集合。
                 var attributes = node.attributes;
                 if (attributes && attributes.length > 0) {
 
-                    var aVal = null, aT = null, aName = null;
-                    for (var i = 0, len = attributes.length; i < len; i++) {
-                        aT = attributes[i];
-                        aVal = aT && aT.nodeValue;
-                        aName = aT && aT.nodeName;
-                        command = moduleI.command(aName);
-                        //if (aName.indexOf('frame')>=0) console.log(aName);
-                        if (command) {
-                            command = _compiles._makeCommand(command, p.view, node);
-                            if (command.compilePre)
-                                aVal = aT && aT.nodeValue;//compilePre有可能重写attr
-                            replace = command.replace;
-                            include = command.include;
-                            tmpl = command.tmpl;
-                            isNewView || (isNewView = command.view);
-                            (!compileChild) || (compileChild = command.compileChild);
-                            attrList.push({ aName: aName, aVal: aVal, type: 'attr', command: command });
-                            if (replace || include) break;
-                        } else if (aVal) {
-                            //是否有text标签{{text}}
-                            if (bingo.view.textTagClass.hasTag(aVal)) {
-                                textTagList.push({ node: aT, aName: aName, aVal: aVal });
+                    var aVal = null, aT = null, aName = null,
+                        attrTL = [], attrL;
+                    do {
+                        attrL = attributes.length;
+                        for (var i = 0, len = attrL; i < len; i++) {
+                            aT = attributes[i];
+                            aName = aT && aT.nodeName;
+
+                            if (bingo.inArray(aName, attrTL) < 0) {
+                                attrTL.push(aName);
+
+                                aVal = aT && aT.nodeValue;
+                                command = moduleI.command(aName);
+                                //if (aName.indexOf('frame')>=0) console.log(aName);
+                                if (command) {
+                                    command = _compiles._makeCommand(command, p.view, node);
+                                    if (command.compilePre)
+                                        aVal = aT && aT.nodeValue;//compilePre有可能重写attr
+
+                                    addAttr(attrList, command, aName, aVal, 'attr');
+                                    if (replace || include) break;
+                                } else if (aVal) {
+                                    //是否有text标签{{text}}
+                                    if (bingo.view.textTagClass.hasTag(aVal)) {
+                                        textTagList.push({ node: aT, aName: aName, aVal: aVal });
+                                    }
+                                }
                             }
                         }
-                    }
+                    } while (attrL != attributes.length);
                 }
+
             }
+
+
 
             var viewnode = null,
                 _viewST = bingo.view;

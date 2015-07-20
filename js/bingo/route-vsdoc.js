@@ -4,6 +4,8 @@
     /*
         //1. 添加或设置路由'view'
         bingo.route('view', {
+            //优先级, 越大越前, 默认100
+            priority: 100,
             //路由地址
             url: 'view/{module}/{controller}/{action}',
             //路由转发到地址
@@ -38,6 +40,7 @@
     var _getActionContext = function () {
         
         return {
+            app:bingo.defaultApp(),
             module: bingo.defaultModule(),
             controller: bingo.defaultModule().controller('_getActionContext'),
             action: function () { }
@@ -45,20 +48,22 @@
     };
     /*
         //根据url生成routeContext;
-        var routeContext = bingo.route('view/system/user/list');
+        var routeContext = bingo.routeContext('view/system/user/list');
             返回结果==>{
                 url:'view/system/user/list',
                 toUrl:'modules/system/views/user/list.html',
-                params:{ module: 'system', controller: 'user', action: 'list' }
+                params:{ module: 'system', controller: 'user', action: 'list', queryParams:{} }
             }
     */
     //
+
     bingo.routeContext = function (url) {
         /// <summary>
-        /// 根据route url取得解释结果
+        /// 根据route url取得解释结果<br />
+        /// bingo.routeContext('view/system/user/list')
         /// </summary>
         /// <param name="url"></param>
-        return { name: 'view', params: {}, url: '/', toUrl: '/', actionContext: _getActionContext };
+        return { name: 'view', params: { queryParams: {} }, url: '/', toUrl: '/', actionContext: _getActionContext };
     };
 
     /*
@@ -68,12 +73,28 @@
     */
     bingo.routeLink = function (name, p) {
         /// <summary>
-        /// 根据路由参数， 生成路由地址：view/system/user/list
+        /// 根据路由参数， 生成路由地址：view/system/user/list<br />
+        /// bingo.routeLink('view', { module: 'system', controller: 'user', action: 'list' })
         /// </summary>
         /// <param name="name">路由名称</param>
         /// <param name="p">参数， { module: 'system', controller: 'user', action: 'list' }</param>
         return '/';
     };
 
+    /*
+    //生成路由地址query
+    bingo.routeLinkQuery('view/system/user/list', { id: '1111' });
+        返回结果==>'view/system/user/list$id:1111'
+    */
+
+    bingo.routeLinkQuery = function (url, p) {
+        /// <summary>
+        /// 生成路由地址query <br />
+        /// bingo.routeLinkQuery('view/system/user/list', { id: '1111' })
+        /// </summary>
+        /// <param name="url"></param>
+        /// <param name="p"></param>
+        return '/';
+    };
 
 })(bingo);

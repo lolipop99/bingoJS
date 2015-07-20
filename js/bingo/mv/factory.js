@@ -116,13 +116,14 @@
                         moduleName = moduleName[0];
                     }
 
-                    var moduleI = hasMN ? bingo.module(moduleName) : bingo.getModuleByView(this.view());
-                    var moduleDefault = bingo.defaultModule();
-                    var factorys = moduleI.factory();
-                    var factorys2 = moduleDefault == moduleI ? null : moduleDefault.factory();
+                    var appI = bingo.getAppByView(this.view());
 
-                    fn = factorys[nameT] || (factorys2 && factorys2[nameT]) || moduleI.service(nameT) || (moduleDefault == moduleI ? null : moduleDefault.service(nameT));
+                    var moduleI = hasMN ? appI.module(moduleName) : bingo.getModuleByView(this.view());
+
+
+                    fn = _getInjectFn(appI, moduleI, nameT);
                     fn && (fn = _makeInjectAttrs(fn));
+                    //_makeInjectAttrs
                     //_makeInjectAttrs
                 }
                 return this.name(name).fn(fn);
@@ -131,6 +132,20 @@
         });
 
     });
+
+    var _getInjectFn = function (appI, moduleI, nameT) {
+        var moduleDefault = bingo.defaultModule(appI);
+        var factorys = moduleI.factory();
+        var factorys2 = moduleDefault == moduleI ? null : moduleDefault.factory();
+
+        var fn = factorys[nameT] || (factorys2 && factorys2[nameT]) || moduleI.service(nameT) || (moduleDefault == moduleI ? null : moduleDefault.service(nameT));
+        if (fn)
+            return fn;
+        else if (appI != bingo.defaultApp())
+            return _getInjectFn(bingo.defaultApp(), bingo.defaultApp().defaultModule(), nameT);
+        else
+            return null;
+    }
 
     //var _factory = {};//, _factoryObj = _factoryClass.NewObject();
     //bingo.extend({

@@ -6,6 +6,8 @@
     /*
         //1. 添加或设置路由'view'
         bingo.route('view', {
+            //优先级, 越大越前, 默认100
+            priority: 100,
             //路由地址
             url: 'view/{module}/{controller}/{action}',
             //路由转发到地址
@@ -50,6 +52,27 @@
         return r ? _paramToUrl(r.context.url, p, 1) : '';
     };
 
+    /*
+        //生成路由地址query
+        bingo.routeLinkQuery('view/system/user/list', { id: '1111' });
+            返回结果==>'view/system/user/list$id:1111'
+    */
+    bingo.routeLinkQuery = function (url, p) {
+        url || (url = '');
+        var urlPath = '';
+        if (url.indexOf('$') >= 0 || url.indexOf('?') >= 0) {
+            var routeContext = bingo.routeContext(url);
+            p = bingo.extend({}, p, routeContext.params.queryParams);
+            var sp = url.indexOf('$') >= 0 ? '$' : '?';
+            url = url.split(sp)[0];
+        }
+        bingo.eachProp(p, function (item, n) {
+            item = encodeURIComponent(item || '');
+            //route参数形式, $aaa:1$bbb=2
+            urlPath = [urlPath, '$', n, ':', item].join('');
+        });
+        return [url, urlPath].join('');
+    };
 
     var _tranAttrRex = /\{([^}]+)\}/gi;
     var _urlToParams = function (url, routeContext) {
@@ -103,6 +126,8 @@
             }
         });
 
+        var queryParams = obj.queryParams = {};
+
         //如果url匹配， 
         //生成多余参数
         if (isOk && urlParams.length > 1) {
@@ -111,18 +136,25 @@
                 var list = item.split(':'),
                     name = list[0],
                     val = decodeURIComponent(list[1] || '');
-                name && (obj[name] = val);
+                name && (obj[name] = queryParams[name] = val);
             });
         }
 
         return isOk ? obj : null;
     }, _getActionContext = function () {
-        var context = { module: null, controller: null, action: null };
+        var context = { app: null, module: null, controller: null, action: null };
         var params = this.params;
         if (params) {
-            var moduleIn = bingo.module(params.module);
+            var appName = params.app;
+            var moduleName = params.module;
+
+            var appIn = bingo.isNullEmpty(appName) ? bingo.defaultApp() : bingo.app(appName);
+            var moduleIn = bingo.isNullEmpty(moduleName) ? appIn.defaultModule()
+                : appIn.module(moduleName);
+
             var controller = moduleIn ? moduleIn.controller(params.controller) : null;
             var action = controller ? controller.action(params.action) : (moduleIn ? moduleIn.action(params.action) : null);
+            context.app = appIn;
             context.module = moduleIn;
             context.controller = controller;
             context.action = action;
@@ -143,7 +175,7 @@
             if (url.indexOf(attr) >= 0) {
                 //如果是url变量参数， 如/{module}/{aciont}/aa.txt
                 url = bingo.replaceAll(url, attr, val);
-            } else if (n != 'module' && n != 'controller' && n != 'action' && n != 'service') {
+            } else if (n != 'module' && n != 'controller' && n != 'action' && n != 'service' && n != 'app' && n != 'queryParams') {
                 //如果是其它参数
                 if (paramType == 1) {
                     //route参数形式, $aaa:1$bbb=2

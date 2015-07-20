@@ -1,5 +1,59 @@
+#### 1.1.720
+1.加强模板指令定义属性compilePre, 可以实现模板指令组合,如下面组合bg-render和bg-model
+```script
+bingo.command('bg-select', function () {
+    return {
+        compilePre: function ($node) {
+            var attrValue = $node.attr('bg-select');
+            $node.attr('bg-render', ['item in ', attrValue, '.list'].join(''));
+            $node.attr('bg-model', [attrValue, '.id'].join(''));
+        }
+    };
+});
+```
+
+2. 优化observer机制
+
+3. 添加对app支持,不影响之前使用，用于解决多前端项目合并时module冲突问题，建议使用app， 一个项目对应一个app
+```script
+bingo.app('myApp').module('myModuel', function(){
+  bingo.action('myAction', function($view){
+  
+  });
+});
+
+```
+
+4. 添加routeLinkQuery方法
+```script
+/*
+//生成路由地址query
+bingo.routeLinkQuery('view/system/user/list', { id: '1111' });
+    返回结果==>'view/system/user/list$id:1111'
+*/
+```
+
+5.location添加routeParams方法代替原来的queryParams， queryParams只获取url query部分参数
+
+6.添加linq方法index, 返回索引
+```script
+bingo.linq([1, 2, 3]).where(function (item) { return item == 2; }).index()
+```
+
 #### 1.1.713
-1. 添加service和factory名称，如果$不是第一位，认为包函module名称, 如: demo$testSrv认为module('deml').serivce('testSrv')
+1. 添加service和factory名称，如果$不是第一位，认为包函module名称, 如: demo$testSrv认为module('demo').serivce('testSrv')
+```script
+//定义demo/testSrv
+module('demo').serivce('testSrv', function(){
+    return {test:function(){}};
+});
+
+bingo.using('sevices/demo/testSrv');
+//使用demo/testSrv
+bingo.action(function (demo$testSrv) {
+    demo$testSrv.test();
+});
+```
 
 2. 优化编译机制
 

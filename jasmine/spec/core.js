@@ -1000,7 +1000,7 @@ describe('bingo.core - ' + helper.versionString, function () {
             //bingo.routeContext, 解释成具体内容
             var rCtext = bingo.routeContext(routeUrl);
             expect(rCtext).toEqual({
-                name: 'my', params: { module: 'sys', action: 'user', id: '1' },
+                name: 'my', params: { module: 'sys', action: 'user', id: '1', queryParams: {} },
                 url: 'my/sys/user/1', toUrl: 'src/test/sys_user.js?id=1',
                 actionContext: rCtext.actionContext
             });
@@ -1375,7 +1375,7 @@ describe('bingo.core - ' + helper.versionString, function () {
         });
 
 
-        it('contain/sum/avg', function () {
+        it('contain/sum/avg/index', function () {
             var list = [1, 2, 4, 2, 4, 6, 5];
             var listObj = [{ n: 1 }, { n: 2, d: 1 }, { n: 3 }, { n: 4 }, { n: 2, d: 2 }];
 
@@ -1399,6 +1399,8 @@ describe('bingo.core - ' + helper.versionString, function () {
             l = bingo.linq(listObj).avg(function () { return this.n; });
             expect(l).toEqual(2.4);
 
+            l = bingo.linq([1, 2, 3]).where(function (item) { return item == 2; }).index();
+            expect(l).toEqual(1);
         });
 
     });//end bingo.linq

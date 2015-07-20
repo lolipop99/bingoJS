@@ -53,7 +53,12 @@
         });
 
         this.Define({
+            //路由query部分参数
             queryParams: function () {
+                return this.routeParams().queryParams
+            },
+            //路由参数
+            routeParams: function () {
                 var url = this.url();
                 var routeContext = bingo.routeContext(url);
                 return routeContext.params;

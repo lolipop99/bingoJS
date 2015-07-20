@@ -21,7 +21,7 @@
 
     var bingo = window.bingo = {
         //主版本号.子版本号.修正版本号
-        version: { major: 1, minor: 1, rev: 629, toString: function () { return [this.major, this.minor, this.rev].join('.'); } },
+        version: { major: 1, minor: 1, rev: 713, toString: function () { return [this.major, this.minor, this.rev].join('.'); } },
         isDebug: false,
         prdtVersion: '',
         stringEmpty: stringEmpty,
@@ -1221,6 +1221,11 @@
                 this._doLastWhere(0, 1);
                 return this.count() > 0;
             },
+            index: function () {
+                var bl = this._datas;
+                var d = this.first();
+                return bingo.inArray(d, bl);
+            },
             sum: function (callback) {
                 this._doLastWhere();
                 if (!bingo.isFunction(callback)) {
@@ -1760,6 +1765,8 @@
     /*
         //1. 添加或设置路由'view'
         bingo.route('view', {
+            //优先级, 越大越前, 默认100
+            priority: 100,
             //路由地址
             url: 'view/{module}/{controller}/{action}',
             //路由转发到地址
@@ -1804,6 +1811,27 @@
         return r ? _paramToUrl(r.context.url, p, 1) : '';
     };
 
+    /*
+        //生成路由地址query
+        bingo.routeLinkQuery('view/system/user/list', { id: '1111' });
+            返回结果==>'view/system/user/list$id:1111'
+    */
+    bingo.routeLinkQuery = function (url, p) {
+        url || (url = '');
+        var urlPath = '';
+        if (url.indexOf('$') >= 0 || url.indexOf('?') >= 0) {
+            var routeContext = bingo.routeContext(url);
+            p = bingo.extend({}, p, routeContext.params.queryParams);
+            var sp = url.indexOf('$') >= 0 ? '$' : '?';
+            url = url.split(sp)[0];
+        }
+        bingo.eachProp(p, function (item, n) {
+            item = encodeURIComponent(item || '');
+            //route参数形式, $aaa:1$bbb=2
+            urlPath = [urlPath, '$', n, ':', item].join('');
+        });
+        return [url, urlPath].join('');
+    };
 
     var _tranAttrRex = /\{([^}]+)\}/gi;
     var _urlToParams = function (url, routeContext) {
@@ -1857,6 +1885,8 @@
             }
         });
 
+        var queryParams = obj.queryParams = {};
+
         //如果url匹配， 
         //生成多余参数
         if (isOk && urlParams.length > 1) {
@@ -1865,18 +1895,25 @@
                 var list = item.split(':'),
                     name = list[0],
                     val = decodeURIComponent(list[1] || '');
-                name && (obj[name] = val);
+                name && (obj[name] = queryParams[name] = val);
             });
         }
 
         return isOk ? obj : null;
     }, _getActionContext = function () {
-        var context = { module: null, controller: null, action: null };
+        var context = { app: null, module: null, controller: null, action: null };
         var params = this.params;
         if (params) {
-            var moduleIn = bingo.module(params.module);
+            var appName = params.app;
+            var moduleName = params.module;
+
+            var appIn = bingo.isNullEmpty(appName) ? bingo.defaultApp() : bingo.app(appName);
+            var moduleIn = bingo.isNullEmpty(moduleName) ? appIn.defaultModule()
+                : appIn.module(moduleName);
+
             var controller = moduleIn ? moduleIn.controller(params.controller) : null;
             var action = controller ? controller.action(params.action) : (moduleIn ? moduleIn.action(params.action) : null);
+            context.app = appIn;
             context.module = moduleIn;
             context.controller = controller;
             context.action = action;
@@ -1897,7 +1934,7 @@
             if (url.indexOf(attr) >= 0) {
                 //如果是url变量参数， 如/{module}/{aciont}/aa.txt
                 url = bingo.replaceAll(url, attr, val);
-            } else if (n != 'module' && n != 'controller' && n != 'action' && n != 'service') {
+            } else if (n != 'module' && n != 'controller' && n != 'action' && n != 'service' && n != 'app' && n != 'queryParams') {
                 //如果是其它参数
                 if (paramType == 1) {
                     //route参数形式, $aaa:1$bbb=2
@@ -2254,7 +2291,8 @@
     "use strict";
 
     /*
-        //定义action与service:
+
+    bingo.app('sip', function(){
     
         //定义system/user/list 和 system/user/form 两个action
         bingo.module('system', function () {
@@ -2301,6 +2339,8 @@
     
         });
     
+    });//end app
+
     */
 
     var _makeCommandOpt = function (fn) {
@@ -2312,8 +2352,9 @@
             include: false,
             view: false,
             compileChild: true
-            //action: null,
             //compilePre: null,
+            //join: null,
+            //action: null,
             //compile: null,
             //link: null
         };
@@ -2368,10 +2409,14 @@
         if (bingo.isFunction(fn)) {
             var hasLM = _lastModule;
             !hasLM && (_lastModule = this);
+            var hasApp = _lastApp;
+            !hasApp && (_lastApp = _lastModule.app);
+
             _lastContoller = conroller;
             fn.call(conroller);
             _lastContoller = null;
             !hasLM && (_lastModule = null);
+            !hasApp && (_lastApp = null);
         }
         return conroller;
     }, _actionFn = function (name, fn) {
@@ -2389,50 +2434,98 @@
             return this._actions[name] = fn;
         }
     }, _getLastModule = function () {
-        return _lastModule || _defaultModule;
+        return _lastModule || bingo.defaultModule(_lastApp);
     }, _getModuleValue = function (prop, name) {
-        return this[prop][name] || (this != _defaultModule ? _defaultModule[prop][name] : null);
+        var val = this[prop][name];
+        if (!val) {
+            var defaultModule = bingo.defaultModule(this.app);
+            if (this != defaultModule)
+                val = defaultModule[prop][name]
+            if (!val && this.app != _defaultApp) {
+                var defaultModule = bingo.defaultModule();
+                if (this != defaultModule)
+                    val = defaultModule[prop][name]
+            }
+        }
+        return val;
     };
 
-    var _module = {}, _lastModule = null, _lastContoller = null;
+    var _moduleFn = function (name, fn) {
+        if (bingo.isNullEmpty(name)) return null;
+
+        var module = this._module[name];
+
+        if (!module)
+            module = this._module[name] = {
+                name: name, _services: {}, _controllers: {},
+                _commands: {}, _filters: {}, _factorys: {},
+                _actions: {}, action: _actionMDFn,
+                service: _serviceFn,
+                controller: _controllerFn,
+                command: _commandFn,
+                filter: _filterFn,
+                factory: _factoryFn,
+                app:this
+            };
+
+        if (bingo.isFunction(fn)) {
+            var hasApp = _lastApp;
+            !hasApp && (_lastApp = this);
+            _lastModule = module;
+            fn.call(module);
+            _lastModule = null;
+            !hasApp && (_lastApp = null);
+        }
+        return module;
+
+    }, _defaultModuleFn = function () {
+        return this.module('_$defaultModule$_');
+    };
+
+    var _app = {}, _module = {}, _lastApp = null, _lastModule = null, _lastContoller = null;
     bingo.extend({
-        defaultModule: function () {
-            return _defaultModule;
+        defaultModule: function (app) {
+            return app ? app.defaultModule() : _defaultApp.defaultModule();
         },
         getModuleByView: function (view) { return view ? view.$getModule() : bingo.defaultModule(); },
         //定义或获取模块
         module: function (name, fn) {
+            var app = _lastApp || _defaultApp;
+            return app.module.apply(app, arguments);
+        },
+        defaultApp: function () {
+            return _defaultApp;
+        },
+        getAppByView: function (view) { return this.getModuleByView(view).app; },
+        //定义或获取app
+        app: function (name, fn) {
             if (this.isNullEmpty(name)) return null;
             //if (arguments.length == 1)
             //    return _module[name];
 
-            var module = _module[name];
+            var app = _app[name];
 
-            if (!module)
-                module = _module[name] = {
-                    name: name, _services: {}, _controllers: {},
-                    _commands: {}, _filters: {}, _factorys: {},
-                    _actions: {}, action: _actionMDFn,
-                    service: _serviceFn,
-                    controller: _controllerFn,
-                    command: _commandFn,
-                    filter: _filterFn,
-                    factory: _factoryFn
+            if (!app) {
+                app = _app[name] = {
+                    name: name, _module: {},
+                    module: _moduleFn,
+                    defaultModule: _defaultModuleFn
                 };
+            }
 
             if (bingo.isFunction(fn)) {
-                _lastModule = module;
-                fn.call(module);
-                _lastModule = null;
+                _lastApp = app;
+                fn.call(app);
+                _lastApp = null;
             }
-            return module;
+            return app;
         },
         service: function (name, fn) {
-            var lm = _lastModule || _defaultModule;
+            var lm = _getLastModule();
             return lm.service.apply(lm, arguments);
         },
         controller: function (name, fn) {
-            var lm = _lastModule || _defaultModule;
+            var lm = _getLastModule();
             return lm.controller.apply(lm, arguments);
         },
         action: function (name, fn) {
@@ -2441,26 +2534,26 @@
             } else if (_lastContoller)
                 return _lastContoller.action.apply(_lastContoller, arguments);
             else {
-                var lm = _lastModule || _defaultModule;
+                var lm = _getLastModule();
                 return lm.action.apply(lm, arguments);
             }
 
         },
         command: function (name, fn) {
-            var lm = _lastModule || _defaultModule;
+            var lm = _getLastModule();
             return lm.command.apply(lm, arguments);
         },
         filter: function (name, fn) {
-            var lm = _lastModule || _defaultModule;
+            var lm = _getLastModule();
             return lm.filter.apply(lm, arguments);
         },
         factory: function (name, fn) {
-            var lm = _lastModule || _defaultModule;
+            var lm = _getLastModule();
             return lm.factory.apply(lm, arguments);
         }
     });
 
-    var _defaultModule = bingo.module('_$defaultModule$_');
+    var _defaultApp = bingo.app('_$defaultApp$_');
 
 })(bingo);
 ﻿
@@ -2581,13 +2674,14 @@
                         moduleName = moduleName[0];
                     }
 
-                    var moduleI = hasMN ? bingo.module(moduleName) : bingo.getModuleByView(this.view());
-                    var moduleDefault = bingo.defaultModule();
-                    var factorys = moduleI.factory();
-                    var factorys2 = moduleDefault == moduleI ? null : moduleDefault.factory();
+                    var appI = bingo.getAppByView(this.view());
 
-                    fn = factorys[nameT] || (factorys2 && factorys2[nameT]) || moduleI.service(nameT) || (moduleDefault == moduleI ? null : moduleDefault.service(nameT));
+                    var moduleI = hasMN ? appI.module(moduleName) : bingo.getModuleByView(this.view());
+
+
+                    fn = _getInjectFn(appI, moduleI, nameT);
                     fn && (fn = _makeInjectAttrs(fn));
+                    //_makeInjectAttrs
                     //_makeInjectAttrs
                 }
                 return this.name(name).fn(fn);
@@ -2596,6 +2690,20 @@
         });
 
     });
+
+    var _getInjectFn = function (appI, moduleI, nameT) {
+        var moduleDefault = bingo.defaultModule(appI);
+        var factorys = moduleI.factory();
+        var factorys2 = moduleDefault == moduleI ? null : moduleDefault.factory();
+
+        var fn = factorys[nameT] || (factorys2 && factorys2[nameT]) || moduleI.service(nameT) || (moduleDefault == moduleI ? null : moduleDefault.service(nameT));
+        if (fn)
+            return fn;
+        else if (appI != bingo.defaultApp())
+            return _getInjectFn(bingo.defaultApp(), bingo.defaultApp().defaultModule(), nameT);
+        else
+            return null;
+    }
 
     //var _factory = {};//, _factoryObj = _factoryClass.NewObject();
     //bingo.extend({
@@ -2727,12 +2835,8 @@
                 var view = watch._view;
                 item.varo = _oldValue;
                 _oldValue.$subs(function (value) {
-                    if (!view.$isReady) //处理$isReady
-                        item.isChange = true;
-                    else {
-                        callback.call(item, value);
-                        watch.publishAsync();
-                    }
+                    callback.call(item, value);
+                    watch.publishAsync();
                 }, disposer || view);
             } else {
                 if (deep) _oldValue = bingo.clone(_oldValue);
@@ -2752,11 +2856,6 @@
         };
 
         var _varSub = function () {
-            if (this.isChange) {
-                //处理view.$isReady问题
-                this.varo.$setChange();
-                this.isChange = false;
-            }
             return false;
         }, _dispose = function () { bingo.clearObject(this); };
 
@@ -3209,31 +3308,7 @@
             node[this.compiledAttrName] = "1";
         },
         _makeCommand: function (command, view, node) {
-            //command = bingo.factory(command).view(view).node(node).inject();
-
-            //var opt = {
-            //    priority: 50,
-            //    tmpl: '',
-            //    tmplUrl: '',
-            //    replace: false,
-            //    include: false,
-            //    view: false,
-            //    compileChild: true
-            //    //action: null,
-            //    //compilePre: null,
-            //    //compile: null,
-            //    //link: null
-            //};
-            //if (bingo.isFunction(command) || bingo.isArray(command)) {
-            //    opt.link = command;
-            //} else
-            //    opt = bingo.extend(opt, command);
-
-            //opt.compilePre || (opt.compilePre = _injectNoop);
-            //opt.compile || (opt.compile = _injectNoop);
-            //opt.action || (opt.action = _injectNoop);
-            //opt.link || (opt.link = _injectNoop);
-
+            
             var opt = command;
 
             if (!bingo.isNullEmpty(opt.tmplUrl)) {
@@ -3242,9 +3317,6 @@
 
             if (opt.compilePre)
                 bingo.factory(opt.compilePre).view(view).node(node).inject();
-
-            //opt.compilePre = _makeInjectAttrs(opt.compilePre);
-            //bingo.inject(opt.compilePre, view, null, null, node);
 
             return opt;
         },
@@ -3384,49 +3456,63 @@
             var attrList = [], textTagList = [], compileChild = true;
             var tmpl = null, replace = false, include = false, isNewView = false;
             if (tagName == 'script') compileChild = false;
-            if (command) {
-                //node
-                command = _compiles._makeCommand(command, p.view, node);
+
+            var addAttr = function (attrList, command, attrName, attrVal, attrType) {
                 replace = command.replace;
                 include = command.include;
                 tmpl = command.tmpl;
-                isNewView = command.view;
+                isNewView || (isNewView = command.view);
                 (!compileChild) || (compileChild = command.compileChild);
-                attrList.push({ aName: tagName, aVal: null, type: 'node', command: command });
+                attrList.push({ aName: attrName, aVal: attrVal, type: attrType, command: command });
+            };
+
+            if (command) {
+                //node
+                command = _compiles._makeCommand(command, p.view, node);
+                addAttr(attrList, command, tagName, '', 'node');
             } else {
                 //attr
+
 
                 //在 IE 8 以及更早的版本中，attributes 属性会返回元素所有可能属性的集合。
                 var attributes = node.attributes;
                 if (attributes && attributes.length > 0) {
 
-                    var aVal = null, aT = null, aName = null;
-                    for (var i = 0, len = attributes.length; i < len; i++) {
-                        aT = attributes[i];
-                        aVal = aT && aT.nodeValue;
-                        aName = aT && aT.nodeName;
-                        command = moduleI.command(aName);
-                        //if (aName.indexOf('frame')>=0) console.log(aName);
-                        if (command) {
-                            command = _compiles._makeCommand(command, p.view, node);
-                            if (command.compilePre)
-                                aVal = aT && aT.nodeValue;//compilePre有可能重写attr
-                            replace = command.replace;
-                            include = command.include;
-                            tmpl = command.tmpl;
-                            isNewView || (isNewView = command.view);
-                            (!compileChild) || (compileChild = command.compileChild);
-                            attrList.push({ aName: aName, aVal: aVal, type: 'attr', command: command });
-                            if (replace || include) break;
-                        } else if (aVal) {
-                            //是否有text标签{{text}}
-                            if (bingo.view.textTagClass.hasTag(aVal)) {
-                                textTagList.push({ node: aT, aName: aName, aVal: aVal });
+                    var aVal = null, aT = null, aName = null,
+                        attrTL = [], attrL;
+                    do {
+                        attrL = attributes.length;
+                        for (var i = 0, len = attrL; i < len; i++) {
+                            aT = attributes[i];
+                            aName = aT && aT.nodeName;
+
+                            if (bingo.inArray(aName, attrTL) < 0) {
+                                attrTL.push(aName);
+
+                                aVal = aT && aT.nodeValue;
+                                command = moduleI.command(aName);
+                                //if (aName.indexOf('frame')>=0) console.log(aName);
+                                if (command) {
+                                    command = _compiles._makeCommand(command, p.view, node);
+                                    if (command.compilePre)
+                                        aVal = aT && aT.nodeValue;//compilePre有可能重写attr
+
+                                    addAttr(attrList, command, aName, aVal, 'attr');
+                                    if (replace || include) break;
+                                } else if (aVal) {
+                                    //是否有text标签{{text}}
+                                    if (bingo.view.textTagClass.hasTag(aVal)) {
+                                        textTagList.push({ node: aT, aName: aName, aVal: aVal });
+                                    }
+                                }
                             }
                         }
-                    }
+                    } while (attrL != attributes.length);
                 }
+
             }
+
+
 
             var viewnode = null,
                 _viewST = bingo.view;
@@ -4124,13 +4210,20 @@
             },
             //end--处理readyAll
 
-            //设置module
+            //设置module_app
             $setModule: function (module) {
                 module && (this._module = module);
                 return this;
             },
             $getModule: function () {
-                return this._module || bingo.defaultModule();
+                return this._module || bingo.defaultModule(this.$getApp());
+            },
+            $setApp: function (app) {
+                app && (this._app = app);
+                return this;
+            },
+            $getApp: function () {
+                return this._app || (this._module ? this._module.app : bingo.defaultApp());
             },
             $addAction: function (action) {
                 action && this._actions.push(action);
@@ -4219,6 +4312,7 @@
             bingo.extend(this, {
                 $children: [],
                 _module: null,
+                _app:null,
                 _actions: []
             });
 
@@ -5505,7 +5599,7 @@
 
     bingo.factory('$module', ['$view', function ($view) {
         return function (name) {
-            var module = arguments.length == 0 ? $view.$getModule() : bingo.module(name);
+            var module = arguments.length == 0 ? $view.$getModule() : $view.$getApp().module(name);
             return !module ? null : {
                 $service: function (name) {
                     var service = module.service(name);
@@ -5652,7 +5746,12 @@
         });
 
         this.Define({
+            //路由query部分参数
             queryParams: function () {
+                return this.routeParams().queryParams
+            },
+            //路由参数
+            routeParams: function () {
                 var url = this.url();
                 var routeContext = bingo.routeContext(url);
                 return routeContext.params;
@@ -5822,6 +5921,8 @@
                     if (actionContext.action) {
                         //如果acion不为空, 即已经定义action
 
+                        //设置app
+                        $view.$setApp(actionContext.app);
                         //设置module
                         $view.$setModule(actionContext.module);
                         //添加action
@@ -5837,6 +5938,8 @@
 
                             var actionContext = routeContext.actionContext();
                             if (actionContext.action) {
+                                //设置app
+                                $view.$setApp(actionContext.app);
                                 //设置module
                                 $view.$setModule(actionContext.module);
                                 //添加action

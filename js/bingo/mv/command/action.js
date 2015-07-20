@@ -61,6 +61,8 @@
                     if (actionContext.action) {
                         //如果acion不为空, 即已经定义action
 
+                        //设置app
+                        $view.$setApp(actionContext.app);
                         //设置module
                         $view.$setModule(actionContext.module);
                         //添加action
@@ -76,6 +78,8 @@
 
                             var actionContext = routeContext.actionContext();
                             if (actionContext.action) {
+                                //设置app
+                                $view.$setApp(actionContext.app);
                                 //设置module
                                 $view.$setModule(actionContext.module);
                                 //添加action
