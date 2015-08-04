@@ -6,6 +6,8 @@ bingo.using('service/userService');
     'use strict';
     bingo.module('test').factory('$aaa', function () { return { a: 1 }; });
 
+    //bingo.factoryExtend('$view', function ($view) { $view.aaaa = 1; });
+
     bingo.module('test').controller('user', function () {
 
         bingo.factory('$bbb', function () { return { b: 1 }; });
@@ -32,6 +34,8 @@ bingo.using('service/userService');
         });
 
         bingo.action('form1', function ($view, $aaa, $bbb, userService) {
+
+            console.log('$aaa', $aaa);
 
             console.dir(this);
 

@@ -35,6 +35,7 @@
             viewnodeAttr:null,
             widthData: null,
             node: null,
+            module:null,
             //定义内容
             fn: null,
             //其它参数
@@ -66,7 +67,7 @@
                 };
             },
             //注入
-            inject: function (owner) {
+            inject: function (owner, retAll) {
                 /// <summary>
                 /// 
                 /// </summary>
@@ -74,14 +75,16 @@
                 var fn = this.fn();
                 var $injects = fn.$injects;
                 var injectObj = $injects && $injects.length > 0 ? this._newInjectObj() : {};
-                return this._inject(owner || this.viewnodeAttr() || this.viewnode() || this.view(),
-                    this.name(), injectObj, true);
+                var ret = this._inject(owner || this.viewnodeAttr() || this.viewnode() || this.view(),
+                    this.name(), injectObj, {}, true);
+                return retAll === true ? injectObj : ret;
             },
             //注入
-            _inject: function (owner, name, injectObj, isFirst) {
+            _inject: function (owner, name, injectObj, exObject, isFirst) {
                 var fn = this.fn();
                 if (!fn) throw new Error('not find factory: ' + name);
                 var $injects = fn.$injects;
+                var $extendFn = null;
                 var injectParams = [], $this = this;
                 if ($injects && $injects.length > 0) {
                     var pTemp = null;
@@ -90,73 +93,81 @@
                             pTemp = injectObj[item];
                         } else {
                             //注意, 有循环引用问题
-                            pTemp = injectObj[item] = $this.setFactory(item)._inject(owner, item, injectObj, false);
+                            pTemp = injectObj[item] = $this.setFactory(item)._inject(owner, item, injectObj, exObject, false);
                         }
                         injectParams.push(pTemp);
+
+                        $this._doExtend(owner, item, injectObj, exObject);
+
                     });
                 }
 
                 var ret = fn.apply(fn.$owner || owner, injectParams) || {};
-                !isFirst && (injectObj[name] = ret);
+                if (bingo.isString(name) && name) {
+                    injectObj[name] = ret;
+                    if (isFirst)
+                        this._doExtend(owner, name, injectObj, exObject);
+                }
+
 
                 return ret;
             },
+            _doExtend: function (owner, name, injectObj, exObject) {
+                if (exObject[name] !== true) {
+                    exObject[name] = true;
+                    var $extendFn = this._getExtendFn(name);
+                    if ($extendFn) {
+                        this.setFactory($extendFn)._inject(owner, '', injectObj, exObject, false);
+                    }
+                }
+            },
+            _getParams: function (name) {
+                var appI, moduleI;
+
+                var hasMN = name.indexOf('$') > 0, moduleName = '', nameT = name;
+                if (hasMN) {
+                    moduleName = name.split('$');
+                    nameT = moduleName[1];
+                    moduleName = moduleName[0];
+                }
+                if (this.view()) {
+                    appI = bingo.getAppByView(this.view());
+                    moduleI = hasMN ? appI.module(moduleName) : bingo.getModuleByView(this.view());
+                } else {
+                    moduleI = this.module();
+                    appI = moduleI.app;
+                    if (hasMN) moduleI = appI.module(moduleName);
+                }
+                return { app: appI, module: moduleI, name: nameT };
+            },
+            _getExtendFn: function (name) {
+                var p = this._getParams(name);
+                var exFn = p.module.factoryExtend(p.name);
+                return exFn ? _makeInjectAttrs(exFn) : null;
+            },
+            _getFactoryFn: function (name) {
+                var p = this._getParams(name);
+                var moduleI = p.module, nameT = p.name;
+                var fn = moduleI.factory(nameT, true) || moduleI.service(nameT);
+                return fn ? _makeInjectAttrs(fn) : null;
+            },
             setFactory: function (name) {
-                var fn = null;
+                var fn = null, exFn = null;
                 if (bingo.isFunction(name) || bingo.isArray(name)) {
                     //支持用法：factory(function(){})
                     fn = _makeInjectAttrs(name);
                     name = '';
                 }
                 else {
-                    var hasMN = name.indexOf('$') > 0, moduleName = '', nameT = name;
-                    if (hasMN) {
-                        moduleName = name.split('$');
-                        nameT = moduleName[1];
-                        moduleName = moduleName[0];
-                    }
-
-                    var appI = bingo.getAppByView(this.view());
-
-                    var moduleI = hasMN ? appI.module(moduleName) : bingo.getModuleByView(this.view());
-
-
-                    fn = _getInjectFn(appI, moduleI, nameT);
-                    fn && (fn = _makeInjectAttrs(fn));
-                    //_makeInjectAttrs
-                    //_makeInjectAttrs
+                    fn = this._getFactoryFn(name);
                 }
                 return this.name(name).fn(fn);
             }
-
         });
 
     });
 
-    var _getInjectFn = function (appI, moduleI, nameT) {
-        var moduleDefault = bingo.defaultModule(appI);
-        var factorys = moduleI.factory();
-        var factorys2 = moduleDefault == moduleI ? null : moduleDefault.factory();
 
-        var fn = factorys[nameT] || (factorys2 && factorys2[nameT]) || moduleI.service(nameT) || (moduleDefault == moduleI ? null : moduleDefault.service(nameT));
-        if (fn)
-            return fn;
-        else if (appI != bingo.defaultApp())
-            return _getInjectFn(bingo.defaultApp(), bingo.defaultApp().defaultModule(), nameT);
-        else
-            return null;
-    }
-
-    //var _factory = {};//, _factoryObj = _factoryClass.NewObject();
-    //bingo.extend({
-    //    factory: function (name, fn) {
-    //            //return _factoryObj.reset().setFactory(arguments[0]);
-    //        if (arguments.length == 1)
-    //            return _factoryClass.NewObject().setFactory(arguments[0]);
-    //        else
-    //            _factory[name] = _makeInjectAttrs(fn);
-    //    }
-    //});
     bingo.factory.factoryClass = _factoryClass;
 
     var _injectNoop = function () { };

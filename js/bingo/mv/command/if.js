@@ -1,34 +1,40 @@
 ﻿(function (bingo) {
 
-    bingo.command('bg-if', function () {
-        return {
-            compileChild: false,
-            compile: ['$attr', '$node', '$compile', function ($attr, $node, $compile) {
-                /// <param name="$compile" value="function(){return bingo.compile();}"></param>
-                /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
-                /// <param name="$node" value="$([])"></param>
+    var _renderItem = '_tif_' + bingo.makeAutoId();
 
-                var html = $node.html();
+    bingo.each(['bg-if', 'bg-render-if'], function (cmdName) {
+        var _isRender = cmdName == 'bg-render-if';
+        bingo.command(cmdName, function () {
+            return {
+                compileChild: false,
+                compile: ['$attr', '$node', '$compile', '$render', function ($attr, $node, $compile, $render) {
+                    /// <param name="$compile" value="function(){return bingo.compile();}"></param>
+                    /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
+                    /// <param name="$node" value="$([])"></param>
 
-                var _set = function (value) {
-                    $node.html('');
-                    if (value) {
-                        $node.show();
-                        $compile().fromHtml(html).appendTo($node).compile();
-                    } else
-                        $node.hide();
-                };
+                    var html = bingo.compile.getNodeContentTmpl($node),
+                        _render = _isRender ? $render(html) : null;
 
-                $attr.$subsResults(function (newValue) {
-                    _set(newValue);
-                });
+                    var _set = function (value) {
+                        $node.html('');
+                        if (value) {
+                            $node.show();
+                            $compile().fromHtml(_isRender ? _render.render({}, _renderItem) : html).appendTo($node).compile();
+                        } else
+                            $node.hide();
+                    };
 
-                $attr.$initResults(function (value) {
-                    _set(value);
-                });
+                    $attr.$subsResults(function (newValue) {
+                        _set(newValue);
+                    });
 
-            }]
-        };
+                    $attr.$initResults(function (value) {
+                        _set(value);
+                    });
+
+                }]
+            };
+        });
     });
 
 })(bingo);

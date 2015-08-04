@@ -20,7 +20,7 @@ cd ..
 
 cd command
 
-copy /b /y action.js + attrs.js + event.js + for.js + route.js + html.js + if.js + include.js + model.js + styles.js + text.js + include.js + node.js bingo.mv.command.js
+copy /b /y action.js + attrs.js + event.js + for.js + route.js + html.js + if.js + include.js + model.js + styles.js + text.js + include.js + node.js + base.js bingo.mv.command.js
 
 move bingo.mv.command.js ../../marger/build/bingo.mv.command.js
 

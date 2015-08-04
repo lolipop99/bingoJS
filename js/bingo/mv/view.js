@@ -46,6 +46,7 @@
             _action: function () {
                 var $this = this;
                 if (this._actions.length > 0) {
+                    this.end('_actionBefore_');
                     var actionList = this._actions;
                     this._actions = [];
 
@@ -58,11 +59,12 @@
                 if (!viewnode.isDisposed)
                     viewnode._action();
 
-                setTimeout(function () {
-                    if (!$this.isDisposed && this._isReadyDec_ !== true)
-                        this._isReadyDec_ = true;
-                        $this._decReadyDep();
-                }, 10);
+               
+                if (!this.isDisposed && this._isReadyDec_ !== true) {
+                    this._isReadyDec_ = true;
+                    setTimeout(function () { $this._decReadyDep(); }, 10);
+                }
+
             },
             _link: function () {
                 var viewnode = this.$viewnode();
@@ -100,6 +102,9 @@
                     $this.$update();
                 });
 
+            },
+            onActionBefore: function (callback) {
+                return this.on('_actionBefore_', callback);
             },
             onInitData: function (callback) {
                 return this.on('_initdata_', callback);
@@ -206,10 +211,10 @@
             $observer: function () {
                 return bingo.observer(this);
             },
-            $subscribe: function (p, callback, deep, disposer) {
-                return this.$observer().subscribe(p, callback, deep, disposer);
+            $subscribe: function (p, callback, deep, disposer, priority) {
+                return this.$observer().subscribe(p, callback, deep, disposer, priority);
             },
-            $subs: function (p, callback, deep, disposer) {
+            $subs: function (p, callback, deep, disposer, priority) {
                 return this.$subscribe.apply(this, arguments);
             },
             $using: function (js, callback) {
@@ -533,7 +538,7 @@
                     var $this = this;
                     p = function () { return $this.$results(); };
                 }
-                this.view().$subs(p, p1, deep, this);
+                this.view().$subs(p, p1, deep, this, 100);
                 return this;
             },
             $subsResults: function (p, deep) {
@@ -649,7 +654,6 @@
                         parentNode = this.parentNode(),
                         hasSub = false;//是否要绑定(不只读)
 
-                    node.nodeValue = '';
 
                     var _nodes = null, _serValue = function (value) {
                         //node.nodeValue = value;
@@ -702,7 +706,7 @@
                                 }
                                 item.value = bingo.toStr(newValue);
                                 changeValue();
-                            }, false, $this);
+                            }, false, $this, 100);
                         });
                         var changeValue = function () {
                             var allValue = nodeValue;
@@ -767,6 +771,7 @@
 
             this.attrName = attrName && attrName.toLowerCase();
             this.attrValue = attrValue;
+            node.nodeValue = '';
             //console.log('attrValue', attrValue);
 
             this.onDispose(function () {

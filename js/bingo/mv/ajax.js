@@ -72,7 +72,7 @@
         });
 
         var _disposeEnd = function (servers) {
-            if (!servers.isDisposed) return;
+            if (servers.isDisposed) return;
             setTimeout(function () {
                 servers.dispose();
             }, 1);

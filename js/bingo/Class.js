@@ -170,8 +170,14 @@
             obj.___Initialization__ = bingo.noop;
             obj.base = bingo.noop;
 
+            define._onInit_ && define._onInit_.trigger([obj]);
+
+            define._onDispose_ && obj.onDispose(function () { define._onDispose_.trigger([obj]) });
+
             return obj;
         };
+        define.onInit = _onInit;
+        define.onDispose = _onDispose;
 
         var defineObj = new _defineClass(define, baseDefine);
 
@@ -182,6 +188,20 @@
             _makeDefine(defineName, define);
 
         return define;
+    };
+
+    var _onInit = function (callback) {
+        if (callback) {
+            this._onInit_ || (this._onInit_ = bingo.Event());
+            this._onInit_.on(callback);
+        }
+        return this;
+    }, _onDispose = function (callback) {
+        if (callback) {
+            this._onDispose_ || (this._onDispose_ = bingo.Event());
+            this._onDispose_.on(callback);
+        }
+        return this;
     };
 
 

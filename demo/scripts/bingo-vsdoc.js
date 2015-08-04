@@ -341,12 +341,13 @@ window.intellisenseLogMessage = function (msg) {
             }
             return obj;
         },
-        clone: function (obj, deep) {
+        clone: function (obj, deep, ipo) {
         	/// <summary>
         	/// 只复制planeObj, Array等基础类型变量
         	/// </summary>
         	/// <param name="obj"></param>
-        	/// <param name="deep">深层复制, 默认为true</param>
+            /// <param name="deep">深层复制, 默认为true</param>
+            /// <param name="ipo">是否isPlainObject, 默认为false</param>
             return _clone.clone(obj, deep);
         },
         proxy: function (owner, fn) {
@@ -485,6 +486,9 @@ window.intellisenseLogMessage = function (msg) {
             /// 绑定事件
             /// </summary>
             /// <param name="callback" type="function()"></param>
+            if (callback) {
+                this._checkEnd(callback) || this.__eventList__.push({ one: false, callback: callback });
+            }
             callback && intellisense.setCallContext(callback, { thisArg: this._this() });
             return this;
         },
@@ -493,6 +497,9 @@ window.intellisenseLogMessage = function (msg) {
             /// 绑定事件
             /// </summary>
             /// <param name="callback" type="function()"></param>
+            if (callback) {
+                this._checkEnd(callback) || this.__eventList__.push({ one: true, callback: callback });
+            }
             callback && intellisense.setCallContext(callback, { thisArg: this._this() });
             return this;
         },
@@ -501,13 +508,32 @@ window.intellisenseLogMessage = function (msg) {
             /// 解除绑定事件
             /// </summary>
             /// <param name="callback">可选, 默认清除所有事件callback</param>
+            if (callback) {
+                var list = [];
+                bingo.each(this.__eventList__, function () {
+                    if (this.callback != callback)
+                        list.push(this);
+                });
+                this.__eventList__ = list;
+            } else { this.__eventList__ = []; }
             return this;
+        },
+        _checkEnd: function (callback) {
+            if (this._end) {
+                var args = this._endArg || [], $this = this._this();
+                setTimeout(function () { callback.apply($this, args); }, 1);
+            }
+            return this._end;
         },
         end: function (args) {
             /// <summary>
             /// end([arg1, arg2, ....]), 结束事件, 先解除绑定事件, 以后绑定事件马上自动确发, 用于ready之类的场景
             /// </summary>
             /// <param name="args">可选, 传送参数, [arg1, arg2,...]</param>
+            this._end = true; this._endArg = args;
+
+            this.trigger(args);
+            this.off();
             return this;
         },
         trigger: function () {
@@ -515,20 +541,39 @@ window.intellisenseLogMessage = function (msg) {
             /// 触发事件, 返回最后一个事件值, 事件返回false时, 中断事件
             /// trigger([arg1, arg2, ....])
             /// </summary>
-            /// <returns value='{}'></returns>
+            var list = this.__eventList__, ret = null,
+            eventObj = null, reList = null,
+            $this = this._this();
+            bingo.each(list, function(eventObj){
+
+                if (eventObj.one === true) {
+                    reList || (reList = this.__eventList__);
+                    reList = bingo.removeArrayItem(eventObj, reList);
+                }
+                if ((ret = eventObj.callback.apply($this, arguments[0] || [])) === false) break;
+            });
+            reList && (this.__eventList__ = reList);
+            return ret;
         },
         triggerHandler: function () {
             /// <summary>
             /// 触发第一事件, 并返回值, var b = triggerHandler([arg1, arg2, ....])
             /// </summary>
-            /// <returns value='{}'></returns>
+            var list = this.__eventList__, eventObj = null,
+                $this = this._this();
+            if (list.length == 0) return;
+            eventObj = list[0];
+            var ret = eventObj.callback.apply($this, arguments[0] || []);
+            if (eventObj.one === true)
+                this.__eventList__ = bingo.removeArrayItem(eventObj, this.__eventList__);
+            return ret;
         },
         clone: function (owner) {
             /// <summary>
             /// 复制
             /// </summary>
             /// <param name="owner">新的owner</param>
-            return bingo.Event(owner || this.owner(), []);
+            return bingo.Event(owner || this.owner(), this.__eventList__);
         },
         //绑定事件数量
         size: function () { return 1; }
@@ -621,22 +666,24 @@ window.intellisenseLogMessage = function (msg) {
 
             return this;
         },
-        $assign: function (callback, disposer) {
+        $assign: function (callback, disposer, priority) {
             /// <summary>
             /// 赋值事件(当在赋值时, 不理值是否改变, 都发送事件)
             /// </summary>
             /// <param name="callback" type="function(value)"></param>
             /// <param name="disposer">可选， 当disposer.isDisposed时自动释放</param>
+            /// <param name="priority">优先级, 越大越前, 默认50</param>
 
             bingo.isFunction(callback) && intellisenseSetCallContext(callback, this, [this.$get()]);
             return this;
         },
-        $subs: function (callback, disposer) {
+        $subs: function (callback, disposer, priority) {
             /// <summary>
             /// 改变值事件(当在赋值时, 只有值改变了, 才发送事件)
             /// </summary>
             /// <param name="callback" type="function(value)"></param>
             /// <param name="disposer">可选， 当disposer.isDisposed时自动释放</param>
+            /// <param name="priority">优先级, 越大越前, 默认50</param>
 
             bingo.isFunction(callback) && intellisenseSetCallContext(callback, this, [this.$get()]);
             return this;
@@ -986,8 +1033,14 @@ window.intellisenseLogMessage = function (msg) {
             obj.___Initialization__ = bingo.noop;
             obj.base = bingo.noop;
 
+            define._onInit_ && define._onInit_.trigger([obj]);
+
+            define._onDispose_ && obj.onDispose(function () { define._onDispose_.trigger([obj]) });
+
             return obj;
         };
+        define.onInit = _onInit;
+        define.onDispose = _onDispose;
 
         var defineObj = new _defineClass(define, baseDefine);
 
@@ -1005,6 +1058,30 @@ window.intellisenseLogMessage = function (msg) {
         return define;
     };
 
+
+    var _onInit = function (callback) {
+        /// <summary>
+        /// 初始
+        /// </summary>
+        /// <param name="callback" type="function(obj)"></param>
+        if (callback) {
+            this._onInit_ || (this._onInit_ = bingo.Event());
+            this._onInit_.on(callback);
+            intellisenseSetCallContext(callback, this, [this.NewObject()]);
+        }
+        return this;
+    }, _onDispose = function (callback) {
+        /// <summary>
+        /// 销毁
+        /// </summary>
+        /// <param name="callback" type="function(obj)"></param>
+        if (callback) {
+            this._onDispose_ || (this._onDispose_ = bingo.Event());
+            this._onDispose_.on(callback);
+            intellisenseSetCallContext(callback, this, [this.NewObject()]);
+        }
+        return this;
+    };
 
     //生成名字空间=============
 
@@ -1493,7 +1570,9 @@ window.intellisenseLogMessage = function (msg) {
     bingo.extend({
         using: function (jsFiles, callback, priority) {
         	/// <summary>
-            /// 引用JS， bingo.using("/js/c.js", "d.js"， function(){}, bingo.envPriority.Normal)
+            /// 引用JS <br />
+            /// bingo.using("/js/c.js", "d.js"， function(){}, bingo.envPriority.Normal) <br />
+            /// bingo.using(["/js/c.js", "d.js"]， function(){}, bingo.envPriority.Normal)
         	/// </summary>
         	/// <param name="jsFiles">文件， 可以多个。。。</param>
         	/// <param name="callback">加载完成后</param>
@@ -1918,9 +1997,13 @@ window.intellisenseLogMessage = function (msg) {
         if (len == 0)
             return this._factorys;
         else if (len == 1) {
-            return bingo.factory.factoryClass.NewObject().setFactory(name).inject();
+            var fa = bingo.factory.factoryClass.NewObject().setFactory(name);
+            fa.inject();
+            return fa;
         } else {
             if (fn) {
+                if (fn === true)
+                    return _getModuleValue.call(this, '_factorys', name);
                 _lastModule = this;
                 bingo.factory(fn);
                 _lastModule = null;
@@ -1928,6 +2011,23 @@ window.intellisenseLogMessage = function (msg) {
             return this._factorys[name] = fn;
         }
 
+    }, _factoryExtendFn = function (name, fn) {
+        /// <summary>
+        /// 定义或获取factory扩展
+        /// </summary>
+        /// <param name="name">定义或获取扩展名称</param>
+        /// <param name="fn" type="function(injects..)">可选</param>
+        if (bingo.isNullEmpty(name)) return;
+        if (fn) {
+            fn.$owner = { module: this };
+            _lastModule = this;
+            bingo.factory(fn);
+            _lastModule = null;
+        }
+        if (arguments.length == 1)
+            return _getModuleValue.call(this, '_factoryExtends', name);
+        else
+            return this._factoryExtends[name] = fn;
     }, _serviceFn = function (name, fn) {
         /// <summary>
         /// 定义或获取service
@@ -2038,6 +2138,7 @@ window.intellisenseLogMessage = function (msg) {
                 command: _commandFn,
                 filter: _filterFn,
                 factory: _factoryFn,
+                _factoryExtends: {}, factoryExtend: _factoryExtendFn,
                 app: this
             };
 
@@ -2088,7 +2189,35 @@ window.intellisenseLogMessage = function (msg) {
                 app = _app[name] = {
                     name: name, _module: {},
                     module: _moduleFn,
-                    defaultModule: _defaultModuleFn
+                    defaultModule: _defaultModuleFn,
+                    action: function (name, fn) {
+                        var defaultModule = this.defaultModule();
+                        return defaultModule.action.apply(defaultModule, arguments);
+                    },
+                    service: function (name, fn) {
+                        var defaultModule = this.defaultModule();
+                        return defaultModule.service.apply(defaultModule, arguments);
+                    },
+                    controller: function (name, fn) {
+                        var defaultModule = this.defaultModule();
+                        return defaultModule.controller.apply(defaultModule, arguments);
+                    },
+                    command: function (name, fn) {
+                        var defaultModule = this.defaultModule();
+                        return defaultModule.command.apply(defaultModule, arguments);
+                    },
+                    filter: function (name, fn) {
+                        var defaultModule = this.defaultModule();
+                        return defaultModule.filter.apply(defaultModule, arguments);
+                    },
+                    factory: function (name, fn) {
+                        var defaultModule = this.defaultModule();
+                        return defaultModule.factory.apply(defaultModule, arguments);
+                    },
+                    factoryExtend: function (name, fn) {
+                        var defaultModule = this.defaultModule();
+                        return defaultModule.factoryExtend.apply(defaultModule, arguments);
+                    }
                 };
             }
 
@@ -2107,6 +2236,15 @@ window.intellisenseLogMessage = function (msg) {
             /// <param name="fn" type="function(injects..)"></param>
             var lm = _getLastModule();
             return lm.service.apply(lm, arguments);
+        },
+        factoryExtend: function (name, fn) {
+            /// <summary>
+            /// 定义或获取factory扩展
+            /// </summary>
+            /// <param name="name">定义或获取扩展名称</param>
+            /// <param name="fn" type="function(injects..)">可选</param>
+            var lm = _getLastModule();
+            return lm.factoryExtend.apply(lm, arguments);
         },
         controller: function (name, fn) {
             /// <summary>
@@ -2189,6 +2327,7 @@ window.intellisenseLogMessage = function (msg) {
             viewnodeAttr:null,
             widthData: null,
             node: null,
+            module: null,
             //定义内容
             fn: null,
             //其它参数
@@ -2221,23 +2360,26 @@ window.intellisenseLogMessage = function (msg) {
                 };
             },
             //注入
-            inject: function (owner) {
+            inject: function (owner, retAll) {
                 /// <summary>
                 /// 
                 /// </summary>
                 /// <param name="owner">默认attr||viewnode||view</param>
+                /// <param name="retAll">是否返回注入全部结果，返回Object, 默认false</param>
 
                 //var fn = this.fn();
                 var injectObj = this._newInjectObj();
                 //intellisenseSetCallContext(fn, this, [injectObj.$view])
                 //return;
-                return this._inject(owner || injectObj.$view,
-                    this.name(), injectObj, true);
+                var ret = this._inject(owner || injectObj.$view,
+                    this.name(), injectObj, {}, true);
+                return retAll === true ? injectObj : ret;
             },
             //注入
-            _inject: function (owner, name, injectObj, isFirst) {
+            _inject: function (owner, name, injectObj, exObject, isFirst) {
                 var fn = this.fn();
                 var $injects = fn.$injects;
+                var $extendFn = null;
                 var injectParams = [], $this = this;
                 //isFirst && intellisenseLogMessage('injectParams begin', JSON.stringify($injects), fn.toString());
                 if ($injects && $injects.length > 0) {
@@ -2247,44 +2389,72 @@ window.intellisenseLogMessage = function (msg) {
                             pTemp = injectObj[item];
                         } else {
                             //注意, 有循环引用问题
-                            pTemp = injectObj[item] = $this.setFactory(item)._inject(owner, item, injectObj, false);
+                            pTemp = injectObj[item] = $this.setFactory(item)._inject(owner, item, injectObj, exObject, false);
                         }
                         injectParams.push(pTemp);
+
+                        $this._doExtend(owner, item, injectObj, exObject);
                     });
                 }
 
                 var ret = fn.apply(fn.$owner || owner, injectParams) || {};
+
+                if (bingo.isString(name) && name) {
+                    injectObj[name] = ret;
+                    if (isFirst)
+                        this._doExtend(owner, name, injectObj, exObject);
+                }
+
                 if (isFirst) {
                     //intellisenseLogMessage('injectParams', JSON.stringify($injects), fn.toString());
                     intellisenseSetCallContext(fn, fn.$owner || owner, injectParams);
                     //intellisenseLogMessage('injectParams', JSON.stringify($injects), JSON.stringify(injectParams));
-                } else
-                    injectObj[name] = ret;
+                }
+                //else if (bingo.isString(name) && name)
+                //    injectObj[name] = ret;
 
                 return ret;
             },
+            _doExtend: function (owner, name, injectObj, exObject) {
+                if (exObject[name] !== true) {
+                    exObject[name] = true;
+                    var $extendFn = this._getExtendFn(name);
+                    if ($extendFn) {
+                        this.setFactory($extendFn)._inject(owner, '', injectObj, exObject, false);
+                    }
+                }
+            },
+            _getParams: function (name) {
+                var hasMN = name.indexOf('$') > 0, moduleName = '', nameT = name;
+                if (hasMN) {
+                    moduleName = name.split('$');
+                    nameT = moduleName[1];
+                    moduleName = moduleName[0];
+                }
+                var appI = bingo.getAppByView(this.view());
+                var moduleI = hasMN ? appI.module(moduleName) : bingo.getModuleByView(this.view());
+                return { app: appI, module: moduleI, name: nameT };
+            },
+            _getExtendFn: function (name) {
+                var p = this._getParams(name);
+                var exFn = p.module.factoryExtend(p.name);
+                return exFn ? _makeInjectAttrs(exFn) : null;
+            },
+            _getFactoryFn: function (name) {
+                var p = this._getParams(name);
+                var moduleI = p.module, nameT = p.name;
+                var fn = moduleI.factory(nameT, true) || moduleI.service(nameT);
+                return fn ? _makeInjectAttrs(fn) : null;
+            },
             setFactory: function (name) {
-                var fn = null;
+                var fn = null, exFn;
                 if (bingo.isFunction(name) || bingo.isArray(name)) {
                     //支持用法：factory(function(){})
                     fn = _makeInjectAttrs(name);
                     name = '';
                 }
                 else {
-                    var hasMN = name.indexOf('$') > 0, moduleName = '', nameT = name;
-                    if (hasMN) {
-                        moduleName = name.split('$');
-                        nameT = moduleName[1];
-                        moduleName = moduleName[0];
-                    }
-
-                    var appI = bingo.getAppByView(this.view());
-
-                    var moduleI = hasMN ? appI.module(moduleName) : bingo.getModuleByView(this.view());
-
-
-                    fn = _getInjectFn(appI, moduleI, nameT);
-                    fn && (fn = _makeInjectAttrs(fn));
+                    fn = this._getFactoryFn(name);
                 }
                 this.name(name).fn(fn);
                 //this.inject();
@@ -2292,7 +2462,6 @@ window.intellisenseLogMessage = function (msg) {
 
                 return this;
             }
-
         });
 
     });
@@ -2307,7 +2476,17 @@ window.intellisenseLogMessage = function (msg) {
             return fn;
         else
             return _getInjectFn(bingo.defaultApp(), bingo.defaultApp().defaultModule(), nameT);
-    }
+    }, _getInjectExtendFn = function (appI, moduleI, nameT) {
+        var moduleDefault = bingo.defaultModule(appI);
+        var fn = moduleI.factoryExtend(nameT) || (moduleDefault == moduleI ? null : moduleDefault.factoryExtend(nameT));
+
+        if (fn)
+            return fn;
+        else if (appI != bingo.defaultApp())
+            return _getInjectExtendFn(bingo.defaultApp(), bingo.defaultApp().defaultModule(), nameT);
+        else
+            return null;
+    };
 
     bingo.factory.factoryClass = _factoryClass;
 
@@ -2437,7 +2616,7 @@ window.intellisenseLogMessage = function (msg) {
                 /// <param name="callback">可选, 不传则取消全部订阅</param>
                 return this;
             },
-            subscribe: function (context, callback, deep, disposer) {
+            subscribe: function (context, callback, deep, disposer, priority) {
                 /// <summary>
                 /// 订阅
                 /// </summary>
@@ -2451,6 +2630,7 @@ window.intellisenseLogMessage = function (msg) {
                 /// </param>
                 /// <param name="deep">是否深层比较, 默认简单引用比较</param>
                 /// <param name="disposer">自动释放对象, 必须是bingo.Class定义对象</param>
+                /// <param name="priority">优先级, 越大越前, 默认50</param>
                 return _newItem(this, context, callback, deep, disposer);
             },
             publish: function () {
@@ -2706,6 +2886,13 @@ window.intellisenseLogMessage = function (msg) {
         /// <param name="jqSelector"></param>
     };
 
+    bingo.compile.getNodeContentTmpl = function (jqSelector) {
+        /// <summary>
+        /// 获取node的内容为模板
+        /// </summary>
+        /// <param name="jqSelector"></param>
+        return '<br />';
+    };
 
     var _tmplClass = bingo.compile.tmplClass = bingo.Class(bingo.ajax.ajaxClass, function () {
 
@@ -2941,6 +3128,13 @@ window.intellisenseLogMessage = function (msg) {
     var _viewClass = bingo.view.viewClass = bingo.Class(bingo.linkToDom.LinkToDomClass, function () {
 
         this.Define({
+            onActionBefore: function (callback) {
+                /// <summary>
+                /// 进入action前事件
+                /// </summary>
+                /// <param name="callback" type="function()"></param>
+                return this;
+            },
             onInitData: function (callback) {
                 /// <summary>
                 /// 初始数据用事件
@@ -3061,7 +3255,7 @@ window.intellisenseLogMessage = function (msg) {
                 /// </summary>
                 return bingo.observer(this);
             },
-            $subscribe: function (p, callback, deep, disposer) {
+            $subscribe: function (p, callback, deep, disposer, priority) {
                 /// <summary>
                 /// 订阅
                 /// </summary>
@@ -3069,9 +3263,10 @@ window.intellisenseLogMessage = function (msg) {
                 /// <param name="callback" type="function(value)"></param>
                 /// <param name="deep">可选， 是否深比较， 默认false</param>
                 /// <param name="disposer">释放者， 如果此对象已释放， 订阅自动删除</param>
-                return this.$observer().subscribe(p, callback, deep, disposer);
+                /// <param name="priority">优先级, 越大越前, 默认50</param>
+                return this.$observer().subscribe(p, callback, deep, disposer, priority);
             },
-            $subs: function (p, callback, deep, disposer) {
+            $subs: function (p, callback, deep, disposer, priority) {
                 /// <summary>
                 /// 订阅
                 /// </summary>
@@ -3079,6 +3274,7 @@ window.intellisenseLogMessage = function (msg) {
                 /// <param name="callback" type="function(value)"></param>
                 /// <param name="deep">可选， 是否深比较， 默认false</param>
                 /// <param name="disposer">释放者， 如果此对象已释放， 订阅自动删除</param>
+                /// <param name="priority">优先级, 越大越前, 默认50</param>
                 return this.$subscribe.apply(this, arguments);
             },
             $using: function (js, callback) {

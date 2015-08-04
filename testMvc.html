@@ -150,7 +150,12 @@
             style-width：<input bg-model="styWidth" />可以修改宽度
             <div style="height:10px;background-color:red;" bg-style="{width:styWidth}"></div>
         </div>
-
+        <div>
+            bg-select：
+            <select bg-select="selectTest">
+                <option value="{{: item.id}}">{{: item.text | text}}</option>
+            </select>
+        </div>
 
         <div> =====事件=========== </div>
         <div>

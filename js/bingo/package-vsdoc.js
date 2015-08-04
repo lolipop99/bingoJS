@@ -18,7 +18,9 @@
     bingo.extend({
         using: function (jsFiles, callback, priority) {
         	/// <summary>
-            /// 引用JS， bingo.using("/js/c.js", "d.js"， function(){}, bingo.envPriority.Normal)
+            /// 引用JS <br />
+            /// bingo.using("/js/c.js", "d.js"， function(){}, bingo.envPriority.Normal) <br />
+            /// bingo.using(["/js/c.js", "d.js"]， function(){}, bingo.envPriority.Normal)
         	/// </summary>
         	/// <param name="jsFiles">文件， 可以多个。。。</param>
         	/// <param name="callback">加载完成后</param>

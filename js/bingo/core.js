@@ -19,7 +19,7 @@
 
     var bingo = window.bingo = {
         //主版本号.子版本号.修正版本号
-        version: { major: 1, minor: 1, rev: 713, toString: function () { return [this.major, this.minor, this.rev].join('.'); } },
+        version: { major: 1, minor: 1, rev: 0804, toString: function () { return [this.major, this.minor, this.rev].join('.'); } },
         isDebug: false,
         prdtVersion: '',
         stringEmpty: stringEmpty,
@@ -113,6 +113,8 @@
         toStr: function (p) { return this.isNull(p) ? '' : p.toString(); },
         inArray: function (element, list, index, rever) {
             var callback = this.isFunction(element) ? element : null;
+            if (arguments.length == 2 && !callback)
+                return list && list.indexOf && list.indexOf(element);
             var indexRef = -1;
             //debugger;
             this.each(list, function (item, i) {
@@ -226,9 +228,9 @@
             }
             return obj;
         },
-        clone: function (obj, deep) {
+        clone: function (obj, deep, ipo) {
             deep = (deep !== false);
-            return _clone.clone(obj, deep);
+            return _clone.clone(obj, deep, ipo);
         },
         proxy: function (owner, fn) {
             return function () { return fn && fn.apply(owner, arguments); };
@@ -244,21 +246,21 @@
         isCloneObject: function (obj) {
             return bingo.isPlainObject(obj);
         },
-        clone: function (obj, deep) {
+        clone: function (obj, deep, ipo) {
             if (!obj)
                 return obj;
             else if (bingo.isArray(obj))
                 return this.cloneArray(obj, deep);
-            else if (this.isCloneObject(obj))
-                return this.cloneObject(obj, deep);
+            else if (ipo || this.isCloneObject(obj))
+                return this.cloneObject(obj, deep, ipo);
             else
                 return obj;
         },
-        cloneObject: function (obj, deep) {
+        cloneObject: function (obj, deep, ipo) {
             var to = {};
             bingo.eachProp(obj, function (t, n) {
                 if (deep) {
-                    t = _clone.clone(t, deep);
+                    t = _clone.clone(t, deep, ipo);
                 }
                 to[n] = t;
             });

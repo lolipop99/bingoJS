@@ -7,7 +7,8 @@
         观察模式类
     */
     var _observerClass = bingo.Class(function () {
-        var _newItem = function (watch, context, callback, deep, disposer) {
+        var _newItem = function (watch, context, callback, deep, disposer, priority) {
+            priority || (priority = 50);
             var _isFn = bingo.isFunction(context),
                 //取值
                 _getValue = function () {
@@ -28,7 +29,8 @@
                 _oldValue = _getValue();
             var item = {
                 _callback: callback,
-                dispose: _dispose
+                dispose: _dispose,
+                _priority: priority
             };
 
             if (bingo.isVariable(_oldValue)) {
@@ -39,7 +41,7 @@
                 _oldValue.$subs(function (value) {
                     callback.call(item, value);
                     watch.publishAsync();
-                }, disposer || view);
+                }, disposer || view, priority);
             } else {
                 if (deep) _oldValue = bingo.clone(_oldValue);
                 item.check = function () {
@@ -84,7 +86,7 @@
                 }
                 return this;
             },
-            subscribe: function (context, callback, deep, disposer) {
+            subscribe: function (context, callback, deep, disposer, priority) {
                 /// <summary>
                 /// 订阅
                 /// </summary>
@@ -99,8 +101,9 @@
                 /// <param name="deep">是否深层比较, 默认简单引用比较</param>
                 /// <param name="disposer">自动释放对象, 必须是bingo.Class定义对象</param>
                 /// <returns value='{check:function(){}, dispose:function(){}}'></returns>
-                var item = _newItem(this, context, callback, deep, disposer);
+                var item = _newItem(this, context, callback, deep, disposer, priority);
                 this._subscribes.push(item);
+                this._subscribes = bingo.linq(this._subscribes).sortDesc('_priority').toArray();
                 return item;
             },
             //发布信息

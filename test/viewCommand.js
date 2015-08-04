@@ -26,6 +26,17 @@
         };
     });
 
+    bingo.command('bg-select', function () {
+        return {
+            compilePre: function ($node) {
+                var attrValue = $node.attr('bg-select');
+                $node.attr('bg-render', ['item in ', attrValue, '.list'].join(''));
+                $node.attr('bg-model', [attrValue, '.id'].join(''));
+            }
+        };
+    });
+
+
     bingo.command('helloReplace', function () {
         return {
             //模板
@@ -141,6 +152,16 @@
             setTimeout(function () { $view.forList(rdDatas); }, 5000)
         }, 5000);
         $view.forItemClick = function (item, item1) { console.log(item, item1); };
+
+        $view.selectTest = {
+            id: $var('1'),
+            list: $var([{ id: '1', text: '1111' }, { id: '2', text: '2222' }])
+        };
+
+        $view.selectTest.id.$subs(function (value) {
+
+            console.log('selectTest.id', value);
+        });
 
         $view.onReady(function () {
             $view.forList([]);

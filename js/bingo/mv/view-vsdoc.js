@@ -22,6 +22,13 @@
     var _viewClass = bingo.view.viewClass = bingo.Class(bingo.linkToDom.LinkToDomClass, function () {
 
         this.Define({
+            onActionBefore: function (callback) {
+                /// <summary>
+                /// 进入action前事件
+                /// </summary>
+                /// <param name="callback" type="function()"></param>
+                return this;
+            },
             onInitData: function (callback) {
                 /// <summary>
                 /// 初始数据用事件
@@ -142,7 +149,7 @@
                 /// </summary>
                 return bingo.observer(this);
             },
-            $subscribe: function (p, callback, deep, disposer) {
+            $subscribe: function (p, callback, deep, disposer, priority) {
                 /// <summary>
                 /// 订阅
                 /// </summary>
@@ -150,9 +157,10 @@
                 /// <param name="callback" type="function(value)"></param>
                 /// <param name="deep">可选， 是否深比较， 默认false</param>
                 /// <param name="disposer">释放者， 如果此对象已释放， 订阅自动删除</param>
-                return this.$observer().subscribe(p, callback, deep, disposer);
+                /// <param name="priority">优先级, 越大越前, 默认50</param>
+                return this.$observer().subscribe(p, callback, deep, disposer, priority);
             },
-            $subs: function (p, callback, deep, disposer) {
+            $subs: function (p, callback, deep, disposer, priority) {
                 /// <summary>
                 /// 订阅
                 /// </summary>
@@ -160,6 +168,7 @@
                 /// <param name="callback" type="function(value)"></param>
                 /// <param name="deep">可选， 是否深比较， 默认false</param>
                 /// <param name="disposer">释放者， 如果此对象已释放， 订阅自动删除</param>
+                /// <param name="priority">优先级, 越大越前, 默认50</param>
                 return this.$subscribe.apply(this, arguments);
             },
             $using: function (js, callback) {

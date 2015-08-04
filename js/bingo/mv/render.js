@@ -55,7 +55,8 @@
 
     //var _renderRegx = /\{\{\s*(\/?)(\:|if|else|for|tmpl)([^}]*)\}/g;   //如果要扩展标签, 请在(if )里扩展如(if |for ), 保留以后扩展
     var _renderRegx = /\{\{\s*(\/?)(\:|if|else|for|tmpl|header|footer|empty|loading)(.*?)\}\}/g;   //如果要扩展标签, 请在(if )里扩展如(if |for ), 保留以后扩展
-    var _renderForeachRegx = /[ ]*([^ ]+)[ ]+in[ ]+(?:(.+)[ ]+tmpl[ ]*=[ ]*(.+)[/]|(.+))*/g;
+    var _renderForeachRegx = /[ ]*([^ ]+)[ ]+in[ ]+(?:(.+)[ ]+tmpl[ ]*=[ ]*(.+)[/]|(.+))*/g;//for 内容分析
+    var _endForRegx = /\/\s*$/; //是否单行for, {{for item in list tmpl=$aaaa /}}
     var _newItem = function (content, isIf, isEnd, isTag, view, node, isElse, isForeach, role) {
         var item = {
             isIf: isIf === true,
@@ -210,6 +211,11 @@
             var isIf = (f2 == 'if' || isElse);
             //for
             var isForeach = (f2 == 'for');
+            //是否单行for
+            var isEndFor = false;
+            if (isForeach) {
+                isEndFor = _endForRegx.test(f3);
+            }
 
             //header:1|footer:2|empty:3|loading:4|其它:0
             var role = 0;
@@ -263,7 +269,7 @@
                 //插入项
                 curList.push(item);
                 //如果是if, 设置为父项
-                (isIf || isForeach || role > 0) && parents.push(item);
+                (isIf || (isForeach && !isEndFor) || role > 0) && parents.push(item);
             }
 
             pos = findPos + findText.length;
@@ -374,13 +380,14 @@
         return list.join('');
     }, _renderItem = function (compileList, view, node, data, itemName, itemIndex, count, parentData, parentWithIndex, outWithDataList) {
         var obj = parentData ? bingo.clone(parentData, false) : {};
-        obj[[itemName, 'index'].join('_')] = itemIndex;
-        obj[[itemName, 'count'].join('_')] = count;
-        obj[[itemName, 'first'].join('_')] = (itemIndex == 0);
-        obj[[itemName, 'last'].join('_')] = (itemIndex == count - 1);
+        obj.$parent = parentData;
+        obj[[itemName, 'index'].join('_')] = obj.$index = itemIndex;
+        obj[[itemName, 'count'].join('_')] = obj.$count = count;
+        obj[[itemName, 'first'].join('_')] = obj.$first = (itemIndex == 0);
+        obj[[itemName, 'last'].join('_')] = obj.$last = (itemIndex == count - 1);
         var isOdd = (itemIndex % 2 == 0);//单
-        obj[[itemName, 'odd'].join('_')] = isOdd;
-        obj[[itemName, 'even'].join('_')] = !isOdd;
+        obj[[itemName, 'odd'].join('_')] = obj.$odd = isOdd;
+        obj[[itemName, 'even'].join('_')] = obj.$even = !isOdd;
         obj[itemName] = data;
 
 

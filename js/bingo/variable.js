@@ -68,8 +68,9 @@
             this._triggerFn([value], true);
             //this.$view() && this.$view().$updateAsync();
         },
-        _addFn: function (fn, change, disposer) {
-            (this._fnList || (this._fnList = [])).push({ fn: fn, change: change, disposer: disposer });
+        _addFn: function (fn, change, disposer, priority) {
+            (this._fnList || (this._fnList = [])).push({ fn: fn, change: change, disposer: disposer, _priority: priority || 50 });
+            this._fnList = bingo.linq(this._fnList).sortDesc('_priority').toArray();
             return this;
         },
         _triggerFn: function (args, change) {
@@ -109,12 +110,12 @@
             }
         },
         //赋值事件(当在赋值时, 不理值是否改变, 都发送事件)
-        $assign: function (callback, disposer) {
-            return this._addFn(callback, false, disposer || this.$view());
+        $assign: function (callback, disposer, priority) {
+            return this._addFn(callback, false, disposer || this.$view(), priority);
         },
         //改变值事件(当在赋值时, 只有值改变了, 才发送事件)
-        $subs: function (callback, disposer) {
-            return this._addFn(callback, true, disposer || this.$view());
+        $subs: function (callback, disposer, priority) {
+            return this._addFn(callback, true, disposer || this.$view(), priority);
         },
         //设置修改状态
         $setChange: function (isChanged) {

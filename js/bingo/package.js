@@ -191,7 +191,7 @@
                     else if (bingo.isNumeric(item))
                         pos = item;
                     else
-                        jsList.push(item);
+                        jsList = jsList.concat(item);
                 }
             }
             _loadFun(jsList, function () {

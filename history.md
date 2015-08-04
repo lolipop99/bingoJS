@@ -1,3 +1,73 @@
+#### 1.1.0804
+1. 优化factory
+
+2. 添加factoryExtend
+```script
+bingo.factoryExtend('$view', function($view){
+    //对$view扩展testEx属性
+    $view.testEx = 'test';
+});
+```
+
+3. 添加bg-render-include和bg-render-if模板标签，支持其内容为render模板
+```script
+<div bg-render-if="true">
+    <script type="text/html">
+        {{for item in list}}
+            {{: item.id}}:{{: item.name}}
+        {{/for}}
+    </script>
+</div>
+```
+
+4. 添加类的onInit和onDispose统一对类初始和销毁扩展
+```script
+bingo.view.viewClass.onInit(function (obj) {
+    obj.onReady(function () {
+    });
+});
+```
+
+5. 添加模板指令bg-action-add
+```html
+<div bg-action="action1" bg-action-add="action2">
+    <div bg-action-add="action3"></div>
+</div>
+```
+
+6. 添加render属性 $parent/$index/$count/$last/$first/$odd/$even
+
+7. 添加模板指令text/bg-script
+```html
+<script type="text/bg-script">
+    $view.onReady(function(){
+        console.log('ready html');
+    });
+</script>
+```
+
+8. 添加模板指令bg-not-compile,  不编译下级提高编译速度
+```html
+<div bg-not-compile>
+    下面不会编译
+</div>
+```
+
+9. 添加$subs支持优先级参数
+
+10. 修复render 无限循环bug
+
+11. 注入inject添加参数retAll, 是否返回注入全部结果，返回Object, 默认false
+```script
+bingo.factory('$view').inject(null, true)
+```
+
+12. 添加view.onActionBefore事件
+
+13. 修复$view readyAll有时触发
+
+14: 提升编译速度
+
 #### 1.1.720
 1.加强模板指令定义属性compilePre, 可以实现模板指令组合,如下面组合bg-render和bg-model
 ```script

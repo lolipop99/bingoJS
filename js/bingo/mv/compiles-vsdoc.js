@@ -35,6 +35,13 @@
         /// <param name="jqSelector"></param>
     };
 
+    bingo.compile.getNodeContentTmpl = function (jqSelector) {
+        /// <summary>
+        /// 获取node的内容为模板
+        /// </summary>
+        /// <param name="jqSelector"></param>
+        return '<br />';
+    };
 
     var _tmplClass = bingo.compile.tmplClass = bingo.Class(bingo.ajax.ajaxClass, function () {
 

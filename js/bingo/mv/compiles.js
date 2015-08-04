@@ -39,6 +39,16 @@
         return bingo.isNullEmpty(html) ? '' : ['<!--bingo_cmpwith_', index, '-->', html, '<!--bingo_cmpwith_', pIndex, '-->'].join('');
     };
 
+    bingo.compile.getNodeContentTmpl = function (jqSelector) {
+        var $node = $(jqSelector), html = '';
+        var jChild = $node.children();
+        if (jChild.size() === 1 && jChild.is('script'))
+            html = jChild.html();
+        else
+            html = $node.html();
+        return html;
+    };
+
     var _removeJo = null, _removeNode = bingo.compile.removeNode = function (jqSelector) {
         _removeJo.append(jqSelector);
         _removeJo.html('');
@@ -128,7 +138,7 @@
                 withDataList = p.withDataList,
                 withData = p.withData;
 
-            var node, pBak = bingo.clone(p, false);
+            var node, pBak = bingo.clone(p, false, true);
             var tmplIndex = -1;
             for (var i = 0, len = nodes.length; i < len; i++) {
                 node = nodes[i];
@@ -138,7 +148,7 @@
                     //如果没有找到injectTmplWithDataIndex的index, 按正常处理
                     p.node = node, p.withData = withData;
                     this.traverseNodes(p);
-                    p = bingo.clone(pBak, false);
+                    p = bingo.clone(pBak, false, true);
                 } else {
                     //如果找到injectTmplWithDataIndex的index, 取得index值为当前值, 添加injectTmplWithDataIndex节点到list
                     withData = p.withData = withDataList[tmplIndex];
@@ -200,7 +210,8 @@
             command = moduleI.command(tagName);
             var attrList = [], textTagList = [], compileChild = true;
             var tmpl = null, replace = false, include = false, isNewView = false;
-            if (tagName == 'script') compileChild = false;
+            var isScriptNode = (tagName == 'script');
+            if (isScriptNode) compileChild = false;
 
             var addAttr = function (attrList, command, attrName, attrVal, attrType) {
                 replace = command.replace;
@@ -235,6 +246,10 @@
                                 attrTL.push(aName);
 
                                 aVal = aT && aT.nodeValue;
+                                //如果是script节点，将type内容识别模板指令
+                                if (isScriptNode && aName == 'type') {
+                                    aName = aVal;
+                                }
                                 command = moduleI.command(aName);
                                 //if (aName.indexOf('frame')>=0) console.log(aName);
                                 if (command) {
@@ -294,7 +309,7 @@
 
                         var pView = p.view, pViewnode = p.parentViewnode,
                             //备份p数据
-                            pBak = bingo.clone(p, false);
+                            pBak = bingo.clone(p, false, true);
 
                         jNewNode.each(function () {
                             if (this.nodeType === 1) {
@@ -324,7 +339,7 @@
                                 p.node = this;
                                 _compiles.traverseNodes(p);
                             }
-                            p = bingo.clone(pBak, false);
+                            p = bingo.clone(pBak, false, true);
                         }).insertBefore(jNode);
                     }
                     //删除本节点

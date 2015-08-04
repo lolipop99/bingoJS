@@ -28,7 +28,11 @@
                 compileChild: false,
                 compilePre: ['$node', function ($node) {
                     var code = $node.attr(cmdName);
-                    if (bingo.isNullEmpty(code)) return;
+                    if (bingo.isNullEmpty(code))
+                        code = 'item in {}';
+                    if (!_renderReg.test(code)) {
+                        code = ['item in ', code].join('');
+                    }
                     var _itemName = '', _dataName = '', _tmpl = '';
                     //分析item名称, 和数据名称
                     code.replace(_renderReg, function () {
@@ -47,8 +51,10 @@
                     $node.data(attrDataName, {
                         itemName: _itemName,
                         dataName: _dataName,
-                        tmpl: _tmpl
+                        tmpl: _tmpl,
+                        html: _tmpl ? '' : bingo.compile.getNodeContentTmpl($node)
                     });
+                    $node.html('');
                 }],
                 link: ['$view', '$compile', '$node', '$attr', '$render', '$tmpl', function ($view, $compile, $node, $attr, $render, $tmpl) {
                     /// <param name="$view" value="bingo.view.viewClass()"></param>
@@ -92,11 +98,7 @@
                     var html = '', renderObj = null;
 
                     if (bingo.isNullEmpty(_tmpl)) {
-                        var jChild = $node.children();
-                        if (jChild.size() === 1 && jChild.is('script'))
-                            html = jChild.html();
-                        else
-                            html = $node.html();
+                        html = attrData.html;
                     } else {
                         var isPath = (_tmpl.indexOf('#') != 0);
                         if (isPath){

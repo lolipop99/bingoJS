@@ -23,7 +23,7 @@
                 /// <param name="callback">可选, 不传则取消全部订阅</param>
                 return this;
             },
-            subscribe: function (context, callback, deep, disposer) {
+            subscribe: function (context, callback, deep, disposer, priority) {
                 /// <summary>
                 /// 订阅
                 /// </summary>
@@ -37,6 +37,7 @@
                 /// </param>
                 /// <param name="deep">是否深层比较, 默认简单引用比较</param>
                 /// <param name="disposer">自动释放对象, 必须是bingo.Class定义对象</param>
+                /// <param name="priority">优先级, 越大越前, 默认50</param>
                 return _newItem(this, context, callback, deep, disposer);
             },
             publish: function () {

@@ -84,22 +84,24 @@
 
             return this;
         },
-        $assign: function (callback, disposer) {
+        $assign: function (callback, disposer, priority) {
             /// <summary>
             /// 赋值事件(当在赋值时, 不理值是否改变, 都发送事件)
             /// </summary>
             /// <param name="callback" type="function(value)"></param>
             /// <param name="disposer">可选， 当disposer.isDisposed时自动释放</param>
+            /// <param name="priority">优先级, 越大越前, 默认50</param>
 
             bingo.isFunction(callback) && intellisenseSetCallContext(callback, this, [this.$get()]);
             return this;
         },
-        $subs: function (callback, disposer) {
+        $subs: function (callback, disposer, priority) {
             /// <summary>
             /// 改变值事件(当在赋值时, 只有值改变了, 才发送事件)
             /// </summary>
             /// <param name="callback" type="function(value)"></param>
             /// <param name="disposer">可选， 当disposer.isDisposed时自动释放</param>
+            /// <param name="priority">优先级, 越大越前, 默认50</param>
 
             bingo.isFunction(callback) && intellisenseSetCallContext(callback, this, [this.$get()]);
             return this;

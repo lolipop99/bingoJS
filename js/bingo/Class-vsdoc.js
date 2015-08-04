@@ -267,8 +267,14 @@
             obj.___Initialization__ = bingo.noop;
             obj.base = bingo.noop;
 
+            define._onInit_ && define._onInit_.trigger([obj]);
+
+            define._onDispose_ && obj.onDispose(function () { define._onDispose_.trigger([obj]) });
+
             return obj;
         };
+        define.onInit = _onInit;
+        define.onDispose = _onDispose;
 
         var defineObj = new _defineClass(define, baseDefine);
 
@@ -286,6 +292,30 @@
         return define;
     };
 
+
+    var _onInit = function (callback) {
+        /// <summary>
+        /// 初始
+        /// </summary>
+        /// <param name="callback" type="function(obj)"></param>
+        if (callback) {
+            this._onInit_ || (this._onInit_ = bingo.Event());
+            this._onInit_.on(callback);
+            intellisenseSetCallContext(callback, this, [this.NewObject()]);
+        }
+        return this;
+    }, _onDispose = function (callback) {
+        /// <summary>
+        /// 销毁
+        /// </summary>
+        /// <param name="callback" type="function(obj)"></param>
+        if (callback) {
+            this._onDispose_ || (this._onDispose_ = bingo.Event());
+            this._onDispose_.on(callback);
+            intellisenseSetCallContext(callback, this, [this.NewObject()]);
+        }
+        return this;
+    };
 
     //生成名字空间=============
 

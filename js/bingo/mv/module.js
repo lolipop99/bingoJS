@@ -96,12 +96,21 @@
         if (len == 0)
             return this._factorys;
         else if (len == 1) {
-            var fn = bingo.isString(name) ? _getModuleValue.call(this, '_factorys', name) : name;
-            if (!fn) return null;
-            return bingo.factory.factoryClass.NewObject().setFactory(fn);
-        } else
-            return this._factorys[name] = fn;
-
+            //var fn = bingo.isString(name) ? _getModuleValue.call(this, '_factorys', name) : name;
+            //if (!fn) return null;
+            return bingo.factory.factoryClass.NewObject().module(this).setFactory(name);
+        } else {
+            //如果fn为true, 获取factory
+            return fn === true ? _getModuleValue.call(this, '_factorys', name) : this._factorys[name] = fn;
+        }
+    }, _factoryExtendFn = function (name, fn) {
+        if (bingo.isNullEmpty(name)) return;
+        if (arguments.length == 1)
+            return _getModuleValue.call(this, '_factoryExtends', name);
+        else {
+            fn.$owner = { module: this };
+            return this._factoryExtends[name] = fn;
+        }
     }, _serviceFn = function (name, fn) {
         if (bingo.isNullEmpty(name)) return;
         if (arguments.length == 1)
@@ -178,6 +187,7 @@
                 command: _commandFn,
                 filter: _filterFn,
                 factory: _factoryFn,
+                _factoryExtends: {}, factoryExtend: _factoryExtendFn,
                 app:this
             };
 
@@ -222,7 +232,35 @@
                 app = _app[name] = {
                     name: name, _module: {},
                     module: _moduleFn,
-                    defaultModule: _defaultModuleFn
+                    defaultModule: _defaultModuleFn,
+                    action: function (name, fn) {
+                        var defaultModule = this.defaultModule();
+                        return defaultModule.action.apply(defaultModule, arguments);
+                    },
+                    service: function (name, fn) {
+                        var defaultModule = this.defaultModule();
+                        return defaultModule.service.apply(defaultModule, arguments);
+                    },
+                    controller: function (name, fn) {
+                        var defaultModule = this.defaultModule();
+                        return defaultModule.controller.apply(defaultModule, arguments);
+                    },
+                    command: function (name, fn) {
+                        var defaultModule = this.defaultModule();
+                        return defaultModule.command.apply(defaultModule, arguments);
+                    },
+                    filter: function (name, fn) {
+                        var defaultModule = this.defaultModule();
+                        return defaultModule.filter.apply(defaultModule, arguments);
+                    },
+                    factory: function (name, fn) {
+                        var defaultModule = this.defaultModule();
+                        return defaultModule.factory.apply(defaultModule, arguments);
+                    },
+                    factoryExtend: function (name, fn) {
+                        var defaultModule = this.defaultModule();
+                        return defaultModule.factoryExtend.apply(defaultModule, arguments);
+                    }
                 };
             }
 
@@ -236,6 +274,10 @@
         service: function (name, fn) {
             var lm = _getLastModule();
             return lm.service.apply(lm, arguments);
+        },
+        factoryExtend: function (name, fn) {
+            var lm = _getLastModule();
+            return lm.factoryExtend.apply(lm, arguments);
         },
         controller: function (name, fn) {
             var lm = _getLastModule();

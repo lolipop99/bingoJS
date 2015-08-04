@@ -294,12 +294,13 @@
             }
             return obj;
         },
-        clone: function (obj, deep) {
+        clone: function (obj, deep, ipo) {
         	/// <summary>
         	/// 只复制planeObj, Array等基础类型变量
         	/// </summary>
         	/// <param name="obj"></param>
-        	/// <param name="deep">深层复制, 默认为true</param>
+            /// <param name="deep">深层复制, 默认为true</param>
+            /// <param name="ipo">是否isPlainObject, 默认为false</param>
             return _clone.clone(obj, deep);
         },
         proxy: function (owner, fn) {
