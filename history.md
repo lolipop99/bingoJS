@@ -19,8 +19,11 @@ ajax2.fromOther(ajax1);
 ```
 
 4. 删除ajax.deferred方法
+
 5. 优化编译
+
 6. 优化bg-for/bg-render
+
 7. 增强linq的where和select
 
 8. 将$attr.$prop方法改为$attrValue
