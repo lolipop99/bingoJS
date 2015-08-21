@@ -26,7 +26,8 @@ ajax2.fromOther(ajax1);
 8. 将$attr.$prop方法改为$attrValue
 
 9. 开放以下开关
-```
+
+```script
 bingo.supportWorkspace开关, 支持chorme workspace开发, 默认false
 
 //tmpl缓存正则
