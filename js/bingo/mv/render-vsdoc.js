@@ -39,4 +39,7 @@
         };
     };
 
+    //render正则
+    bingo.render.regex = /\{\{\s*(\/?)(\:|if|else|for|tmpl|header|footer|empty|loading)(.*?)\}\}/g;   //如果要扩展标签, 请在(if )里扩展如(if |for ), 保留以后扩展
+
 })(bingo);

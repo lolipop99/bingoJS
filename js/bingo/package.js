@@ -47,8 +47,8 @@
             //路由
             pathTemp = _getMapPath(pathTemp);
             //如里有prdtVersion, 添加prdtVersion, query
-            if (!bingo.isNullEmpty(bingo.prdtVersion))
-                pathTemp = [pathTemp.indexOf('?') ? '&' : '?', prdtVersion, '=', bingo.prdtVersion];
+            if (!bingo.supportWorkspace && !bingo.isNullEmpty(bingo.prdtVersion))
+                pathTemp = [pathTemp, pathTemp.indexOf('?') >= 0 ? '&' : '?', '_version_=', bingo.prdtVersion].join('');
 
             //js文件是否已经存在
             if (!_hasJS(pathTemp)) {

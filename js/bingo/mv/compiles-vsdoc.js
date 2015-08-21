@@ -49,6 +49,8 @@
             this.base();
         });
     });
+    //tmpl缓存正则
+    bingo.compile.tmplCacheMetas = /\.(htm|html|tmpl|txt)(\?.*)*$/i;
 
     //模板==负责编译======================
     var _compileClass = bingo.compile.templateClass = bingo.Class(function () {
@@ -127,7 +129,7 @@
             node: null,
             viewnode:null,
             //属性原值
-            $prop: '1'
+            $attrValue: '1'
         });
 
         this.Define({
@@ -189,7 +191,7 @@
             this._withData = withData;
             this.view(view).node(node);
             this.content = content;
-            this.$prop(content);
+            this.$attrValue(content);
 
         });
     });
@@ -206,7 +208,7 @@
             $getAttr: function (name) {
                 return bingo.compile.bind(this.view(), this.node(), '111', this.withData());
             },
-            $prop: function (name, p) {
+            $attrValue: function (name, p) {
                 if (arguments.length == 1) {
                     return '1111';
                 } else {

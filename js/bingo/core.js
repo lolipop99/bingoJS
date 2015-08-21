@@ -19,9 +19,10 @@
 
     var bingo = window.bingo = {
         //主版本号.子版本号.修正版本号
-        version: { major: 1, minor: 1, rev: 0804, toString: function () { return [this.major, this.minor, this.rev].join('.'); } },
+        version: { major: 1, minor: 1, rev: 821, toString: function () { return [this.major, this.minor, this.rev].join('.'); } },
         isDebug: false,
         prdtVersion: '',
+        supportWorkspace: false,
         stringEmpty: stringEmpty,
         noop: noop,
         newLine: "\r\n",
@@ -203,7 +204,11 @@
             for (var i = 0, len = arguments.length; i < len; i++) {
                 obj = arguments[i];
                 bingo.eachProp(obj, function (item, n) {
-                    if (item && item.$clearAuto === true) bingo.clearObject(item);
+                    if (item && item.$clearAuto === true)
+                        if (item.dispose)
+                            item.dispose();
+                        else
+                            bingo.clearObject(item);
                     obj[n] = null;
                 });
             }

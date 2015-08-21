@@ -34,7 +34,7 @@
                 });
 
                 $attr.$init(function () {
-                    return $attr.$prop();
+                    return $attr.$attrValue();
                 }, function (value) {
                     value && $location.href(value);
                 });

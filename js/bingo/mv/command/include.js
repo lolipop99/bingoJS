@@ -16,7 +16,7 @@
                 /// <param name="$viewnode" value="bingo.view.viewnodeClass()"></param>
                 /// <param name="$tmpl" value="function(url){ return bingo.tmpl('', $view);}"></param>
 
-                var _prop = $attr.$prop();
+                var _prop = $attr.$attrValue();
                 //如果值为空不处理
                 if (bingo.isNullEmpty(_prop)) return;
 

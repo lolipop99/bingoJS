@@ -10,8 +10,10 @@
         /// <param name="tmpl">render 模板</param>
         /// <param name="view">可选, 需注入时用</param>
         /// <param name="node">可选, 原生node, 需注入时用</param>
-        _renderRegx.lastIndex = 0;
-        var compileData = _renderRegx.test(tmpl) ? _compile(tmpl, view, node) : null;
+        bingo.render.regex.lastIndex = 0;
+        _commentRegx.lastIndex = 0;
+        tmpl = tmpl.replace(_commentRegx, '');
+        var compileData = bingo.render.regex.test(tmpl) ? _compile(tmpl, view, node) : null;
         compileData && (compileData = _makeForCompile(compileData));
         //console.log('compileData', compileData);
         return {
@@ -44,6 +46,8 @@
         };
     };
 
+    bingo.render.regex = /\{\{\s*(\/?)(\:|if|else|for|tmpl|header|footer|empty|loading)(.*?)\}\}/g;   //如果要扩展标签, 请在(if )里扩展如(if |for ), 保留以后扩展
+
 
     /*
         支持js语句, 如: {{: item.name}} {{document.body.childNodes[0].nodeName}}
@@ -53,10 +57,9 @@
         支持过滤器, 如: {{: item.name | text}}, 请参考过滤器
     */
 
-    //var _renderRegx = /\{\{\s*(\/?)(\:|if|else|for|tmpl)([^}]*)\}/g;   //如果要扩展标签, 请在(if )里扩展如(if |for ), 保留以后扩展
-    var _renderRegx = /\{\{\s*(\/?)(\:|if|else|for|tmpl|header|footer|empty|loading)(.*?)\}\}/g;   //如果要扩展标签, 请在(if )里扩展如(if |for ), 保留以后扩展
     var _renderForeachRegx = /[ ]*([^ ]+)[ ]+in[ ]+(?:(.+)[ ]+tmpl[ ]*=[ ]*(.+)[/]|(.+))*/g;//for 内容分析
     var _endForRegx = /\/\s*$/; //是否单行for, {{for item in list tmpl=$aaaa /}}
+    var _commentRegx = /<!--\s*#(.*?)-->/g;//去除注释<!--# asdfasdf-->
     var _newItem = function (content, isIf, isEnd, isTag, view, node, isElse, isForeach, role) {
         var item = {
             isIf: isIf === true,
@@ -144,7 +147,7 @@
             pos = 0, parents = [], _isTmpl = false, tmplCount = 0,
             _last = function (len) { return (len > 0) ? parents[len - 1].children : list; },
             _parent = function (len) { return (len > 0) ? parents.pop().children : list; };
-        s.replace(_renderRegx, function (findText, f1, f2, f3, findPos, allText) {
+        s.replace(bingo.render.regex, function (findText, f1, f2, f3, findPos, allText) {
             //console.log(findText, 'f1:' + f1, 'f2:' + f2, 'f3:' + f3, findPos);
             //return;
 

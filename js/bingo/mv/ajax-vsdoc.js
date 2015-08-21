@@ -46,14 +46,6 @@
                 this._view = v;
                 return this;
             },
-            deferred: function () {
-                /// <summary>
-                /// 
-                /// </summary>
-                /// <returns value='$.Deferred()'></returns>
-                this._dtd || (this._dtd = $.Deferred());
-                return this._dtd;
-            },
             success: function (callback) {
                 /// <summary>
                 /// 成功事件
@@ -73,6 +65,19 @@
                 /// 无论成功或失败事件
                 /// </summary>
                 /// <param name="callback" type="function(rs)"></param>
+                return this;
+            },
+            fromOther: function (ajax) {
+                /// <summary>
+                /// 从其它ajax设置属性
+                /// </summary>
+                /// <param name="ajax"></param>
+                if (ajax instanceof _ajaxBaseClass) {
+                    this._view = ajax._view;
+                    this._calls = ajax._calls;
+                    var p = ajax.$prop();
+                    this.$prop(p);
+                }
                 return this;
             }
         });

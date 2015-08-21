@@ -532,12 +532,17 @@
                 }
                 this._init();
             },
+            onChange: function (callback) { return this.on('onChange', callback); },
+            onInit: function (callback) { return this.on('onInit', callback); },
             $subs: function (p, p1, deep) {
                 if (arguments.length == 1) {
                     p1 = p;
                     var $this = this;
                     p = function () { return $this.$results(); };
                 }
+                var fn = p1;
+                var $this = this;
+                p1 = function (val) { var r = fn.apply(this, arguments); $this.trigger('onChange', [val]); return r; };
                 this.view().$subs(p, p1, deep, this, 100);
                 return this;
             },
@@ -568,7 +573,9 @@
                     var p = para.p, p1 = para.p1;
                     this.__initParam = null;
                     var val = bingo.isFunction(p) ? p.call(this) : p;
-                    p1.call(this, bingo.variableOf(val));
+                    val = bingo.variableOf(val);
+                    p1.call(this, val);
+                    this.trigger('onInit', [val]);
                 }
             },
             $init: function (p, p1) {
@@ -628,9 +635,7 @@
     //标签==========================
     var _textTagClass = bingo.view.textTagClass = bingo.Class(function () {
 
-
         this.Static({
-            //_regex: /(?!\{\{\:)\{\{([^}]+?)\}\}/gi,
             _regex: /\{\{(.+?)\}\}/gi,
             _regexRead: /^\s*:\s*/,
             hasTag: function (text) {

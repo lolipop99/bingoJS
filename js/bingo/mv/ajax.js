@@ -32,6 +32,15 @@
 
     var _ajaxBaseClass = bingo.ajax.ajaxBaseClass = bingo.Class(function () {
 
+        var _makeCallFn = function (cType, callback) {
+            var fn = function (type, args, context) {
+                if (type == cType || cType == 'alway') {
+                    callback.apply(context, args);
+                }
+            };
+            return fn;
+        };
+
         this.Define({
             view: function (v) {
                 if (arguments.length == 0) return this._view;
@@ -39,24 +48,37 @@
                 //this.disposeByOther(v);
                 return this;
             },
-            deferred: function () {
-                /// <summary>
-                /// 
-                /// </summary>
-                /// <returns value='$.Deferred()'></returns>
-                this._dtd || (this._dtd = $.Deferred());
-                return this._dtd;
+            _callbacks: function () {
+                this._calls || (this._calls = $.Callbacks('stopOnFalse'));
+                return this._calls;
+            },
+            //拒绝
+            _reject: function (args) {
+                this._calls && this._callbacks().fire('fail', args || [], this);
+            },
+            //解决
+            _resolve: function (args) {
+                this._calls && this._callbacks().fire('done', args || [], this);
             },
             success: function (callback) {
-                this.deferred().done(callback);
+                if (callback) this._callbacks().add(_makeCallFn('done', callback));
                 return this;
             },
             error: function (callback) {
-                this.deferred().fail(callback);
+                if (callback) this._callbacks().add(_makeCallFn('fail', callback));
                 return this;
             },
             alway: function (callback) {
-                this.deferred().always(callback);
+                if (callback) this._callbacks().add(_makeCallFn('alway', callback));
+                return this;
+            },
+            fromOther: function (ajax) {
+                if (ajax instanceof _ajaxBaseClass) {
+                    this._view = ajax._view;
+                    this._calls = ajax._calls;
+                    var p = ajax.$prop();
+                    this.$prop(p);
+                }
                 return this;
             }
         });
@@ -85,8 +107,7 @@
             var holdParams = servers.holdParams();
             var datas = bingo.clone(holdParams ? holdParams.call(servers) : (servers.param() || {}));
 
-            var holdServer = servers.holdServer() || _ajaxClass.holdServer,
-                deferred = servers.deferred();
+            var holdServer = servers.holdServer() || _ajaxClass.holdServer;
 
             var cacheMG = null,
                 url = servers.url(),
@@ -105,12 +126,12 @@
                     if (servers.async())
                         setTimeout(function () {
                             if (!servers.isDisposed) {
-                                (view && view.isDisposed) || deferred.resolveWith(servers, [cacheData]);
+                                (view && view.isDisposed) || servers._resolve([cacheData]);
                                 _disposeEnd(servers);
                             }
                         });
                     else
-                        deferred.resolveWith(servers, [cacheData]);
+                        servers._resolve([cacheData]);
                     _disposeEnd(servers);
                     return;
                 }
@@ -125,9 +146,9 @@
 
                             if (status === true) {
                                 cacheMG && cacheMG.key(cKey).set(response)
-                                deferred.resolveWith(servers, [response]);
+                                servers._resolve([response]);
                             } else
-                                deferred.rejectWith(servers, [response, false, xhr]);
+                                servers._reject([response, false, xhr]);
                         } catch (e) {
                             bingo.trace(e);
                         }
@@ -136,12 +157,15 @@
                 }
             };
 
+            if (!bingo.supportWorkspace && !bingo.isNullEmpty(bingo.prdtVersion))
+                url = [url, url.indexOf('?') >= 0 ? '&' : '?', '_version_=', bingo.prdtVersion].join('');
+
             $.ajax({
                 type: type,
                 url: url,
                 data: datas,
                 async: servers.async(),
-                cache: false,
+                cache: servers._ajaxCache(),
                 dataType: servers.dataType(),
                 success: function (response, status, xhr) {
                     _hold(response, true, xhr);
@@ -156,6 +180,7 @@
             url: { $set: function (value) { this.value = bingo.route(value); } },
             async: true,
             dataType: 'json',
+            _ajaxCache:false,
             param: {},
             //缓存到
             cacheTo: null,
@@ -163,7 +188,7 @@
             cacheMax: -1,
             cacheQurey: true,
             holdServer: null,
-            holdParams:null
+            holdParams: null
         });
 
         this.Define({
@@ -216,13 +241,13 @@
             //解决, 马上成功
             resolve: function () {
                 this._count = 0;
-                this._dtd && this.deferred().resolve();
+                this._resolve();
                 this.dispose();
             },
             //拒绝, 马上失败
             reject: function () {
                 this._count = 0;
-                this._dtd && this.deferred().reject();
+                this._reject();
                 this.dispose();
             },
             dependent: function (p) {

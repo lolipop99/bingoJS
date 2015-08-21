@@ -46,6 +46,7 @@
             where: function (fn, index, count, rever) {
                 /// <summary>
                 /// 过滤<br />
+                /// where('id', '1');
                 /// where(function(item, index){ return item.max > 0 ;});
                 /// </summary>
                 /// <param name="fn" type="function(item, index)"></param>
@@ -60,6 +61,7 @@
             select: function (fn, isMerge) {
                 /// <summary>
                 /// 映射(改造)<br />
+                /// select('id');<br />
                 /// select(function(item, index){ return {a:item.__a, b:item.c+item.d} ;});
                 /// </summary>
                 /// <param name="fn" type="function(item, index)"></param>

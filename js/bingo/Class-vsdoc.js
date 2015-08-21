@@ -31,17 +31,21 @@
         //    }
         //}
 
-    }, _extendProp = function (define, obj) {
+    }, _proName = '__pro_names__', _extendProp = function (define, obj) {
         //对象定义
         var prototype = define.prototype;
 
+        var proNO = prototype[_proName] ? prototype[_proName].split(',') : [];
         var item = null;
         for (var n in obj) {
             if (obj.hasOwnProperty(n)) {
                 item = obj[n];
                 prototype[n] = _propFn(n, item, prototype);
+                proNO.push(n);
             }
         }
+        prototype[_proName] = proNO.join(',');
+
     }, _propFn = function (name, defaultvalue, prototype) {
         var isO = bingo.isObject(defaultvalue),
             $set = isO && defaultvalue.$set,
@@ -379,12 +383,29 @@
                 /// <param name="obj"></param>
                 return this;
             },
-            clone: function () {
+            $prop: function (o) {
                 /// <summary>
-                /// 简单复制Class对象, 普通类型属性, Array, PlaneObject, 不复制事件
+                /// 设置或获取Prop所有属性
                 /// </summary>
-                var obj = this.constructor.NewObject.apply(window, this.__init_args__);
-                return obj;
+                /// <param name="o"></param>
+                var propNames = this[_proName];
+                if (bingo.isNullEmpty(propNames))
+                    return arguments.length == 0 ? null : this;
+                propNames = propNames.split(',');
+                var $this = this;
+                if (arguments.length == 0) {
+                    o = {};
+                    bingo.each(propNames, function (item) {
+                        o[item] = $this[item]();
+                    });
+                    return o;
+                } else {
+                    bingo.eachProp(o, function (item, name) {
+                        if (bingo.inArray(name, propNames) >= 0)
+                            $this[name](o[name]);
+                    });
+                    return this;
+                }
             }
         });
 

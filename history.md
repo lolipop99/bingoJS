@@ -1,3 +1,50 @@
+#### 1.1.0821
+1. 删除Class clone方法, clone情况比较复杂，现在只简单提供$prop方法代替
+
+2. 添加Class $prop方法, 设置或获取Prop所有属性
+
+```script
+var o = bingo.Class.Base.NewObject();
+var prop = o.$prop();
+var o111 = bingo.Class.Base.NewObject();
+o111.$prop(prop);
+```
+
+3.添加ajax方法fromOther，从其它ajax设置属性
+
+```script
+var ajax1 = bingo.ajax.ajaxClass.NewObject()
+var ajax2 = bingo.Class.Base.NewObject();
+ajax2.fromOther(ajax1);
+```
+
+4. 删除ajax.deferred方法
+5. 优化编译
+6. 优化bg-for/bg-render
+7. 增强linq的where和select
+
+8. 将$attr.$prop方法改为$attrValue
+
+9. 开放以下开关
+```
+bingo.supportWorkspace开关, 支持chorme workspace开发, 默认false
+
+//tmpl缓存正则
+bingo.compile.tmplCacheMetas = /\.(htm|html|tmpl|txt)(\?.*)*$/i;
+
+//过滤器正则
+bingo.filter.regex = /[|]+[ ]?([^|]+)/g;
+
+//render正则
+bingo.render.regex = /\{\{\s*(\/?)(\:|if|else|for|tmpl|header|footer|empty|loading)(.*?)\}\}/g;
+```
+
+10. $attr添加onChange和onInit事件，用于$attr之间协同
+
+11. model 添加toDefault方法
+
+12: 添加view注释支持，<!--# comment-->
+
 #### 1.1.0804
 1. 优化factory
 
@@ -112,6 +159,7 @@ bingo.linq([1, 2, 3]).where(function (item) { return item == 2; }).index()
 
 #### 1.1.713
 1. 添加service和factory名称，如果$不是第一位，认为包函module名称, 如: demo$testSrv认为module('demo').serivce('testSrv')
+
 ```script
 //定义demo/testSrv
 module('demo').serivce('testSrv', function(){

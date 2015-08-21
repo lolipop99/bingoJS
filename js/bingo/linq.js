@@ -39,6 +39,7 @@
             where: function (fn, index, count, rever) {
                 /// <summary>
                 /// 过滤<br />
+                /// where('id', '1');
                 /// where(function(item, index){ return item.max > 0 ;});
                 /// </summary>
                 /// <param name="fn" type="function(item, index)"></param>
@@ -46,6 +47,10 @@
                 /// <param name="count" type="Number">数量</param>
                 /// <param name="rever" type="Boolean">反向</param>
 
+                if (!bingo.isFunction(fn)) {
+                    var name = fn, value = index;
+                    fn = function () { return this[name] == value; };
+                }
                 this._doLastWhere();
                 this._lastWhere = {
                     fn: fn, index: index,
@@ -88,10 +93,17 @@
             select: function (fn, isMerge) {
                 /// <summary>
                 /// 映射(改造)<br />
+                /// select('id');<br />
                 /// select(function(item, index){ return {a:item.__a, b:item.c+item.d} ;});
                 /// </summary>
                 /// <param name="fn" type="function(item, index)"></param>
                 /// <param name="isMerge">是否合并数组</param>
+
+                if (!bingo.isFunction(fn)) {
+                    var name = fn;
+                    fn = function () { return this[name]; };
+                }
+
                 this._doLastWhere();
                 var list = [];
                 this.each(function (item, index) {

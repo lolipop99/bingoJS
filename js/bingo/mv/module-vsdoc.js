@@ -66,6 +66,7 @@
             compileChild: true
             //action: null,
             //compilePre: null,
+            //as:null
             //compile: null,
             //link: null
         };
@@ -77,6 +78,7 @@
         }
         opt.action && bingo.factory(opt.action);
         opt.compilePre && bingo.factory(opt.compilePre);
+        opt.as && bingo.factory(opt.as);
         opt.compile && bingo.factory(opt.compile);
         opt.link && bingo.factory(opt.link);
         return opt;

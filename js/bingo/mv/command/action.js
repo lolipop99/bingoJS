@@ -29,6 +29,11 @@
                 //编译前, 没有$viewnode和$attr注入, 即可以用不依懒$domnode和$attr的所有注入, 如$view/node/$node/$ajax...
                 //如果view == true , 注入的view属于上层, 原因是新view还没解释出来, 还处于分析
                 compilePre: null,
+                //引用其它模板指令, 没有$viewnode和$attr注入, 即可以用不依懒$domnode和$attr的所有注入, 如$view/node/$node/$ajax...
+                //如果view == true , 注入的view属于上层, 原因是新view还没解释出来, 还处于分析
+                //as: ['$node', function ($node) {
+                //    return [{ name: 'bg-model', value: 'user.name' }];
+                //}],
                 //action
                 action: null,
                 //link
@@ -40,7 +45,7 @@
                     /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
                     /// <param name="$node" value="$([])"></param>
 
-                    var attrVal = $attr.$prop(), val = null;
+                    var attrVal = $attr.$attrValue(), val = null;
                     if (!bingo.isNullEmpty(attrVal)) {
                         val = $attr.$results();
                         //如果没有取父域

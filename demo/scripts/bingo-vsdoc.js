@@ -63,6 +63,8 @@ window.intellisenseLogMessage = function (msg) {
         isDebug: false,
         ///<field>产品版本号</field>
         prdtVersion: '',
+        ///<field>支持chorme workspace开发, 默认false</field>
+        supportWorkspace: false,
         ///<field>空串</field>
         stringEmpty: stringEmpty,
         ///<field>空方法</field>
@@ -797,17 +799,21 @@ window.intellisenseLogMessage = function (msg) {
         //    }
         //}
 
-    }, _extendProp = function (define, obj) {
+    }, _proName = '__pro_names__', _extendProp = function (define, obj) {
         //对象定义
         var prototype = define.prototype;
 
+        var proNO = prototype[_proName] ? prototype[_proName].split(',') : [];
         var item = null;
         for (var n in obj) {
             if (obj.hasOwnProperty(n)) {
                 item = obj[n];
                 prototype[n] = _propFn(n, item, prototype);
+                proNO.push(n);
             }
         }
+        prototype[_proName] = proNO.join(',');
+
     }, _propFn = function (name, defaultvalue, prototype) {
         var isO = bingo.isObject(defaultvalue),
             $set = isO && defaultvalue.$set,
@@ -1145,12 +1151,29 @@ window.intellisenseLogMessage = function (msg) {
                 /// <param name="obj"></param>
                 return this;
             },
-            clone: function () {
+            $prop: function (o) {
                 /// <summary>
-                /// 简单复制Class对象, 普通类型属性, Array, PlaneObject, 不复制事件
+                /// 设置或获取Prop所有属性
                 /// </summary>
-                var obj = this.constructor.NewObject.apply(window, this.__init_args__);
-                return obj;
+                /// <param name="o"></param>
+                var propNames = this[_proName];
+                if (bingo.isNullEmpty(propNames))
+                    return arguments.length == 0 ? null : this;
+                propNames = propNames.split(',');
+                var $this = this;
+                if (arguments.length == 0) {
+                    o = {};
+                    bingo.each(propNames, function (item) {
+                        o[item] = $this[item]();
+                    });
+                    return o;
+                } else {
+                    bingo.eachProp(o, function (item, name) {
+                        if (bingo.inArray(name, propNames) >= 0)
+                            $this[name](o[name]);
+                    });
+                    return this;
+                }
             }
         });
 
@@ -1334,6 +1357,7 @@ window.intellisenseLogMessage = function (msg) {
             where: function (fn, index, count, rever) {
                 /// <summary>
                 /// 过滤<br />
+                /// where('id', '1');
                 /// where(function(item, index){ return item.max > 0 ;});
                 /// </summary>
                 /// <param name="fn" type="function(item, index)"></param>
@@ -1348,6 +1372,7 @@ window.intellisenseLogMessage = function (msg) {
             select: function (fn, isMerge) {
                 /// <summary>
                 /// 映射(改造)<br />
+                /// select('id');<br />
                 /// select(function(item, index){ return {a:item.__a, b:item.c+item.d} ;});
                 /// </summary>
                 /// <param name="fn" type="function(item, index)"></param>
@@ -1941,6 +1966,7 @@ window.intellisenseLogMessage = function (msg) {
             compileChild: true
             //action: null,
             //compilePre: null,
+            //as:null
             //compile: null,
             //link: null
         };
@@ -1952,6 +1978,7 @@ window.intellisenseLogMessage = function (msg) {
         }
         opt.action && bingo.factory(opt.action);
         opt.compilePre && bingo.factory(opt.compilePre);
+        opt.as && bingo.factory(opt.as);
         opt.compile && bingo.factory(opt.compile);
         opt.link && bingo.factory(opt.link);
         return opt;
@@ -2570,6 +2597,8 @@ window.intellisenseLogMessage = function (msg) {
             }));
         }
         return this;
+    }, _toDefault = function () {
+        this.fromObject(this._p_);
     };
     bingo.model = function (p, view) {
         /// <summary>
@@ -2585,8 +2614,10 @@ window.intellisenseLogMessage = function (msg) {
         });
 
         o._isModel_ = _isModel_;
+        o._p_ = p;
         o.toObject = _toObject;
         o.fromObject = _fromObject;
+        o.toDefault = _toDefault;
         return o;
     };
 
@@ -2708,14 +2739,6 @@ window.intellisenseLogMessage = function (msg) {
                 this._view = v;
                 return this;
             },
-            deferred: function () {
-                /// <summary>
-                /// 
-                /// </summary>
-                /// <returns value='$.Deferred()'></returns>
-                this._dtd || (this._dtd = $.Deferred());
-                return this._dtd;
-            },
             success: function (callback) {
                 /// <summary>
                 /// 成功事件
@@ -2735,6 +2758,19 @@ window.intellisenseLogMessage = function (msg) {
                 /// 无论成功或失败事件
                 /// </summary>
                 /// <param name="callback" type="function(rs)"></param>
+                return this;
+            },
+            fromOther: function (ajax) {
+                /// <summary>
+                /// 从其它ajax设置属性
+                /// </summary>
+                /// <param name="ajax"></param>
+                if (ajax instanceof _ajaxBaseClass) {
+                    this._view = ajax._view;
+                    this._calls = ajax._calls;
+                    var p = ajax.$prop();
+                    this.$prop(p);
+                }
                 return this;
             }
         });
@@ -2900,6 +2936,8 @@ window.intellisenseLogMessage = function (msg) {
             this.base();
         });
     });
+    //tmpl缓存正则
+    bingo.compile.tmplCacheMetas = /\.(htm|html|tmpl|txt)(\?.*)*$/i;
 
     //模板==负责编译======================
     var _compileClass = bingo.compile.templateClass = bingo.Class(function () {
@@ -2978,7 +3016,7 @@ window.intellisenseLogMessage = function (msg) {
             node: null,
             viewnode:null,
             //属性原值
-            $prop: '1'
+            $attrValue: '1'
         });
 
         this.Define({
@@ -3040,7 +3078,7 @@ window.intellisenseLogMessage = function (msg) {
             this._withData = withData;
             this.view(view).node(node);
             this.content = content;
-            this.$prop(content);
+            this.$attrValue(content);
 
         });
     });
@@ -3057,7 +3095,7 @@ window.intellisenseLogMessage = function (msg) {
             $getAttr: function (name) {
                 return bingo.compile.bind(this.view(), this.node(), '111', this.withData());
             },
-            $prop: function (name, p) {
+            $attrValue: function (name, p) {
                 if (arguments.length == 1) {
                     return '1111';
                 } else {
@@ -3400,6 +3438,20 @@ window.intellisenseLogMessage = function (msg) {
     var _viewnodeAttrClass = bingo.view.viewnodeAttrClass = bingo.Class(bingo.compile.bindClass, function () {
 
         this.Define({
+            onChange: function (callback) {
+                /// <summary>
+                /// 改变时事件
+                /// </summary>
+                /// <param name="callback" type="function(value)"></param>
+                return this.on('onChange', callback);
+            },
+            onInit: function (callback) {
+                /// <summary>
+                /// 初始时事件
+                /// </summary>
+                /// <param name="callback" type="function(value)"></param>
+                return this.on('onInit', callback);
+            },
             $subs: function (p, p1, deep) {
                 /// <summary>
                 /// 观察执行结果
@@ -3570,6 +3622,9 @@ window.intellisenseLogMessage = function (msg) {
         };
     };
 
+    //过滤器正则
+    bingo.filter.regex = /[|]+[ ]?([^|]+)/g;
+
 })(bingo);
 ﻿
 (function (bingo) {
@@ -3611,6 +3666,9 @@ window.intellisenseLogMessage = function (msg) {
             }
         };
     };
+
+    //render正则
+    bingo.render.regex = /\{\{\s*(\/?)(\:|if|else|for|tmpl|header|footer|empty|loading)(.*?)\}\}/g;   //如果要扩展标签, 请在(if )里扩展如(if |for ), 保留以后扩展
 
 })(bingo);
 ﻿

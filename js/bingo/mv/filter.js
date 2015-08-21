@@ -23,24 +23,25 @@
         return _filter.createFilter(content, view, node, withData);
     };
 
+    bingo.filter.regex = /[|]+[ ]?([^|]+)/g;
+
     var _filter = {
-        _filterRegex: /[|]+[ ]?([^|]+)/g,
         hasFilter: function (s) {
-            this._filterRegex.lastIndex = 0;
-            return this._filterRegex.test(s);
+            bingo.filter.regex.lastIndex = 0;
+            return bingo.filter.regex.test(s);
         },
         //将filte内容删除
         removerFilterString: function (s) {
             if (bingo.isNullEmpty(s) || !this.hasFilter(s)) return s;
-            this._filterRegex.lastIndex = 0;
-            var str = s.replace(this._filterRegex, function (find, content) { if (find.indexOf('||') == 0) return find; else return ''; });
+            bingo.filter.regex.lastIndex = 0;
+            var str = s.replace(bingo.filter.regex, function (find, content) { if (find.indexOf('||') == 0) return find; else return ''; });
             return bingo.trim(str);
         },
         getFilterStringList: function (s) {
             if (bingo.isNullEmpty(s) || !this.hasFilter(s)) return [];
             var filterList = [];
-            this._filterRegex.lastIndex = 0;
-            s.replace(this._filterRegex, function (find, content) {
+            bingo.filter.regex.lastIndex = 0;
+            s.replace(bingo.filter.regex, function (find, content) {
                 if (find.indexOf('||') != 0) filterList.push(content);
             });
             return filterList;

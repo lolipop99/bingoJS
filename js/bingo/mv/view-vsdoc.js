@@ -294,6 +294,20 @@
     var _viewnodeAttrClass = bingo.view.viewnodeAttrClass = bingo.Class(bingo.compile.bindClass, function () {
 
         this.Define({
+            onChange: function (callback) {
+                /// <summary>
+                /// 改变时事件
+                /// </summary>
+                /// <param name="callback" type="function(value)"></param>
+                return this.on('onChange', callback);
+            },
+            onInit: function (callback) {
+                /// <summary>
+                /// 初始时事件
+                /// </summary>
+                /// <param name="callback" type="function(value)"></param>
+                return this.on('onInit', callback);
+            },
             $subs: function (p, p1, deep) {
                 /// <summary>
                 /// 观察执行结果

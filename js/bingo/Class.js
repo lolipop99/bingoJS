@@ -22,14 +22,17 @@
                 property[n] = item;//要分离处理
         });
        
-    }, _extendProp = function (define, obj) {
+    }, _proName = '__pro_names__', _extendProp = function (define, obj) {
         //对象定义
         var prototype = define.prototype;
 
+        var proNO = prototype[_proName] ? prototype[_proName].split(',') : [];
         bingo.eachProp(obj, function (item, n) {
             item = obj[n];
             prototype[n] = _propFn(n, item);
+            proNO.push(n);
         });
+        prototype[_proName] = proNO.join(',');
 
     }, _propFn = function (name, defaultvalue) {
         var isO = bingo.isObject(defaultvalue),
@@ -238,10 +241,10 @@
     //定义基础类
     bingo.Class.Base = bingo.Class(function () {
 
-        this.Initialization(function () {
-            //用于clone
-            this.__init_args__ = bingo.sliceArray(arguments, 0);
-        });
+        //this.Initialization(function () {
+        //    //用于clone
+        //    this.__init_args__ = bingo.sliceArray(arguments, 0);
+        //});
 
         this.Define({
             __bg_isObject__: true,
@@ -277,25 +280,25 @@
                 }
                 return this;
             },
-            clone: function () {
-                //简单复制Class对, 普通类型属性, Array, PlaneObject
-                var obj = this.constructor.NewObject.apply(window, this.__init_args__);
-
-                bingo.eachProp(this, function (item, n) {
-                    if (n != '__events__') {//不复制事件
-                        item = this[n];
-                        if (bingo.isVariable(item))
-                            obj[n](item());
-                        else if (bingo.isClassObject(item)) {
-                            obj[n] = item.clone();
-                        }
-                        else if (bingo.isObject(item) || bingo.isArray(item)) {
-                            obj[n] = bingo.clone(item);
-                        } else
-                            obj[n] = item;
-                    }
-                });
-                return obj;
+            $prop: function (o) {
+                var propNames = this[_proName];
+                if (bingo.isNullEmpty(propNames))
+                    return arguments.length == 0 ? null : this;
+                propNames = propNames.split(',');
+                var $this = this;
+                if (arguments.length == 0) {
+                    o = {};
+                    bingo.each(propNames, function (item) {
+                        o[item] = $this[item]();
+                    });
+                    return o;
+                } else {
+                    bingo.eachProp(o, function (item, name) {
+                        if (bingo.inArray(name, propNames) >= 0)
+                            $this[name](o[name]);
+                    });
+                    return this;
+                }
             }
         });
 

@@ -43,6 +43,8 @@
             }));
         }
         return this;
+    }, _toDefault = function () {
+        this.fromObject(this._p_);
     };
     bingo.model = function (p, view) {
         /// <summary>
@@ -58,8 +60,10 @@
         });
 
         o._isModel_ = _isModel_;
+        o._p_ = p;
         o.toObject = _toObject;
         o.fromObject = _fromObject;
+        o.toDefault = _toDefault;
         return o;
     };
 

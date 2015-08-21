@@ -16,6 +16,8 @@
         isDebug: false,
         ///<field>产品版本号</field>
         prdtVersion: '',
+        ///<field>支持chorme workspace开发, 默认false</field>
+        supportWorkspace: false,
         ///<field>空串</field>
         stringEmpty: stringEmpty,
         ///<field>空方法</field>

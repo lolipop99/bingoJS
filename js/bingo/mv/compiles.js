@@ -62,7 +62,7 @@
         setCompileNode: function (node) {
             node[this.compiledAttrName] = "1";
         },
-        _makeCommand: function (command, view, node) {
+        _makeCommand: function (command, view, node, as) {
             
             var opt = command;
 
@@ -72,6 +72,12 @@
 
             if (opt.compilePre)
                 bingo.factory(opt.compilePre).view(view).node(node).inject();
+
+            if (opt.as) {
+                var alist = bingo.factory(opt.as).view(view).node(node).inject();
+                if (alist && alist.length > 0)
+                    as.list = (as.list || []).concat(alist);
+            }
 
             return opt;
         },
@@ -134,7 +140,7 @@
             /// <param name="p" value="_compiles.newTraverseParams()"></param>
             /// <param name="withDataList"></param>
 
-            var injectTmplWithList = [],
+            var injectTmplWithList = [], commentList =[],
                 withDataList = p.withDataList,
                 withData = p.withData;
 
@@ -142,25 +148,36 @@
             var tmplIndex = -1;
             for (var i = 0, len = nodes.length; i < len; i++) {
                 node = nodes[i];
-                tmplIndex = withDataList ? this.getTmplWithdataIndex(node) : -1;
-                //tmplIndex > 0 && console.log('tmplIndex', tmplIndex);
-                if (tmplIndex == -1) {
-                    //如果没有找到injectTmplWithDataIndex的index, 按正常处理
-                    p.node = node, p.withData = withData;
-                    this.traverseNodes(p);
-                    p = bingo.clone(pBak, false, true);
+                if (this.isComment(node)) {
+                    //console.log('comment', node);
+                    commentList.push(node);
                 } else {
-                    //如果找到injectTmplWithDataIndex的index, 取得index值为当前值, 添加injectTmplWithDataIndex节点到list
-                    withData = p.withData = withDataList[tmplIndex];
-                    //console.log('p.withData', tmplIndex, p.withData);
-                    injectTmplWithList.push(node);
+                    tmplIndex = withDataList ? this.getTmplWithdataIndex(node) : -1;
+                    //tmplIndex > 0 && console.log('tmplIndex', tmplIndex);
+                    if (tmplIndex == -1) {
+                        //如果没有找到injectTmplWithDataIndex的index, 按正常处理
+                        if (node.nodeType === 1 || node.nodeType === 3) {
+                            p.node = node, p.withData = withData;
+                            this.traverseNodes(p);
+                            p = bingo.clone(pBak, false, true);
+                        }
+                    } else {
+                        //如果找到injectTmplWithDataIndex的index, 取得index值为当前值, 添加injectTmplWithDataIndex节点到list
+                        withData = p.withData = withDataList[tmplIndex];
+                        //console.log('p.withData', tmplIndex, p.withData);
+                        injectTmplWithList.push(node);
+                    }
                 }
             }
 
             //删除injectTmplWithDataIndex注释节点
-            if (injectTmplWithList.length > 0) {
-                _removeNode(injectTmplWithList);
+            if (commentList.length > 0 || injectTmplWithList.length > 0) {
+                _removeNode(commentList.concat(injectTmplWithList));
             }
+        },
+        commentTest: /^\s*#/,
+        isComment: function (node) {
+            return node.nodeType == 8 && this.commentTest.test(node.nodeValue)
         },
         //取得注入的withDataList的index
         getTmplWithdataIndex: function (node) {
@@ -222,9 +239,11 @@
                 attrList.push({ aName: attrName, aVal: attrVal, type: attrType, command: command });
             };
 
+            var as = {}, attrTL = [], aVal = null, aName = null;
+
             if (command) {
                 //node
-                command = _compiles._makeCommand(command, p.view, node);
+                command = _compiles._makeCommand(command, p.view, node, as);
                 addAttr(attrList, command, tagName, '', 'node');
             } else {
                 //attr
@@ -234,8 +253,7 @@
                 var attributes = node.attributes;
                 if (attributes && attributes.length > 0) {
 
-                    var aVal = null, aT = null, aName = null,
-                        attrTL = [], attrL;
+                    var aT = null, attrL;
                     do {
                         attrL = attributes.length;
                         for (var i = 0, len = attrL; i < len; i++) {
@@ -253,7 +271,7 @@
                                 command = moduleI.command(aName);
                                 //if (aName.indexOf('frame')>=0) console.log(aName);
                                 if (command) {
-                                    command = _compiles._makeCommand(command, p.view, node);
+                                    command = _compiles._makeCommand(command, p.view, node, as);
                                     if (command.compilePre)
                                         aVal = aT && aT.nodeValue;//compilePre有可能重写attr
 
@@ -270,6 +288,18 @@
                     } while (attrL != attributes.length);
                 }
 
+            }
+
+            if (as.list) {
+                bingo.each(as.list, function () {
+                    var aName = this.name;
+                    if (bingo.inArray(aName, attrTL) < 0) {
+                        attrTL.push(aName);
+                        command = moduleI.command(aName);
+                        addAttr(attrList, command, aName, this.value, 'attr');
+                        if (replace || include) return false;
+                    }
+                });
             }
 
 
@@ -410,9 +440,14 @@
                 this.onDispose(function () {
                     view && !view.isDisposed && view._decReadyDep();
                 })
-                .cacheTo(this.cacheTo() || _cache)
-                .cacheMax(this.cacheMax() <= 0 ? 350 : this.cacheMax())
                 .dataType('text');
+
+                if (bingo.compile.tmplCacheMetas.test(this.url())) {
+                    this.cacheTo(this.cacheTo() || _cache)
+                    .cacheMax(this.cacheMax() <= 0 ? 350 : this.cacheMax());
+                }
+
+                this._ajaxCache(bingo.supportWorkspace);
             },
             'get': function () {
                 this._initAjax();
@@ -428,6 +463,7 @@
             this.base(url);
         });
     });
+    bingo.compile.tmplCacheMetas = /\.(htm|html|tmpl|txt)(\?.*)*$/i;
 
     //模板==负责编译======================
     var _compileClass = bingo.compile.templateClass = bingo.Class(function () {
@@ -573,7 +609,7 @@
                 var contextCache = attr[_priS._cacheName];
                 if (contextCache[cacheName]) return contextCache[cacheName];
 
-                var attrValue = attr.$prop();
+                var attrValue = attr.$attrValue();
                 try {
                     var retScript = [hasReturn ? 'return ' : '', attrValue, ';'].join('');
                     return contextCache[cacheName] = (new Function('$view', 'node', '$withData', 'bingo', [
@@ -609,25 +645,30 @@
             //设置为字串： _filter('region.id | eq:1')
             //获取为$filter对象
             _filter: {
-                $set: function (value) {
-                    var owner = this.owner;
-                    this.value = bingo.filter.createFilter(value,
-                        owner.view(),
-                        owner.node(),
-                        owner.getWithData());
+                $get: function () {
+                    var value = this.value;
+                    if (!bingo.isNullEmpty(value)) {
+                        this.value = '';
+                        var owner = this.owner;
+                        this.filter = bingo.filter.createFilter(value,
+                            owner.view(),
+                            owner.node(),
+                            owner.getWithData());
+                    }
+                    return this.filter;
                 }
             },
             //属性原值
-            $prop: {
+            $attrValue: {
+                $get: function () {
+                    var ft = this.owner._filter();
+                    return ft ? ft.content : this.value;
+                },
                 $set: function (value) {
-
-                    if (this.filterVal != value) {
-                        this.filterVal = value;
-
+                    if (this.value != value) {
+                        this.value = value;
                         var owner = this.owner;
                         owner._filter(value);
-                        var filter = owner._filter();
-                        this.value = filter.content;
                         _priS.resetContextFun(owner);
                     }
                 }
@@ -663,7 +704,7 @@
                 return this.$filter(res);
             },
             $getValNoFilter: function () {
-                var name = this.$prop();
+                var name = this.$attrValue();
                 var tname = name, tobj = this.getWithData();
                 var val;
                 if (tobj) {
@@ -681,7 +722,7 @@
             },
             //返回withData/$view/window属性值
             $value: function (value) {
-                var name = this.$prop();
+                var name = this.$attrValue();
                 var tname = name, tobj = this.getWithData();
                 var val;
                 if (tobj) {
@@ -710,7 +751,8 @@
 
             },
             $filter: function (val) {
-                return this._filter().filter(val);
+                var ft = this._filter();
+                return ft ? ft.filter(val) : val;
             },
             getWithData: function () {
                 /// <summary>
@@ -730,7 +772,7 @@
             this._withData = withData;
             this.view(view).node(node);
             this.content = content;
-            this.$prop(content);
+            this.$attrValue(content);
 
         });
     });
@@ -754,13 +796,13 @@
                 }
                 return this._attrs[name];
             },
-            $prop: function (name, p) {
+            $attrValue: function (name, p) {
                 if (arguments.length == 1) {
                     var attr = this.node().attributes[name];
-                    return attr ? this.$getAttr(name).$prop() : '';
+                    return attr ? this.$getAttr(name).$attrValue() : '';
                 } else {
                     var attr = this.$getAttr(name);
-                    attr && attr.$prop(p);
+                    attr && attr.$attrValue(p);
                     return this;
                 }
             },
