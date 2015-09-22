@@ -92,19 +92,26 @@
                 var $this = this;
                 bingo.ajaxSyncAll(function () {
 
-                    $this.end('_initdata_');
+                    $this.end('_initdatasrv_');
 
                 }, this).alway(function () {
-                    //所有$axaj加载成功
-                    $this.end('_ready_');
-                    $this.$isReady = true;
-                    $this._decReadyParentDep();
-                    $this.$update();
+                    bingo.ajaxSyncAll(function () {
+                        $this.end('_initdata_');
+                    }, $this).alway(function () {
+                        //所有$axaj加载成功
+                        $this.end('_ready_');
+                        $this.$isReady = true;
+                        $this._decReadyParentDep();
+                        $this.$update();
+                    });
                 });
 
             },
             onActionBefore: function (callback) {
                 return this.on('_actionBefore_', callback);
+            },
+            onInitDataSrv: function (callback) {
+                return this.on('_initdatasrv_', callback);
             },
             onInitData: function (callback) {
                 return this.on('_initdata_', callback);

@@ -36,7 +36,7 @@
         /// <summary>
         /// 注入withDataList html
         /// </summary>
-        return bingo.isNullEmpty(html) ? '' : ['<!--bingo_cmpwith_', index, '-->', html, '<!--bingo_cmpwith_', pIndex, '-->'].join('');
+        return ['<!--bingo_cmpwith_', index, '-->', html, '<!--bingo_cmpwith_', pIndex, '-->'].join('');
     };
 
     bingo.compile.getNodeContentTmpl = function (jqSelector) {

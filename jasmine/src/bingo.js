@@ -21,7 +21,7 @@
 
     var bingo = window.bingo = {
         //主版本号.子版本号.修正版本号
-        version: { major: 1, minor: 1, rev: 821, toString: function () { return [this.major, this.minor, this.rev].join('.'); } },
+        version: { major: 1, minor: 2, rev: 0, toString: function () { return [this.major, this.minor, this.rev].join('.'); } },
         isDebug: false,
         prdtVersion: '',
         supportWorkspace: false,
@@ -2858,7 +2858,7 @@
         bingo.eachProp(this, function (item, n) {
             if (bingo.isVariable(o[n]))
                 o[n](item);
-            else if (n != '_isModel_' && n != 'toObject' && n != 'fromObject')
+            else if (n != '_isModel_' && n != 'toObject' && n != 'fromObject' && n != 'toDefault' && n != '_p_')
                 o[n] = bingo.variableOf(item);
         });
         return o;
@@ -3419,7 +3419,7 @@
         /// <summary>
         /// 注入withDataList html
         /// </summary>
-        return bingo.isNullEmpty(html) ? '' : ['<!--bingo_cmpwith_', index, '-->', html, '<!--bingo_cmpwith_', pIndex, '-->'].join('');
+        return ['<!--bingo_cmpwith_', index, '-->', html, '<!--bingo_cmpwith_', pIndex, '-->'].join('');
     };
 
     bingo.compile.getNodeContentTmpl = function (jqSelector) {
@@ -4340,19 +4340,26 @@
                 var $this = this;
                 bingo.ajaxSyncAll(function () {
 
-                    $this.end('_initdata_');
+                    $this.end('_initdatasrv_');
 
                 }, this).alway(function () {
-                    //所有$axaj加载成功
-                    $this.end('_ready_');
-                    $this.$isReady = true;
-                    $this._decReadyParentDep();
-                    $this.$update();
+                    bingo.ajaxSyncAll(function () {
+                        $this.end('_initdata_');
+                    }, $this).alway(function () {
+                        //所有$axaj加载成功
+                        $this.end('_ready_');
+                        $this.$isReady = true;
+                        $this._decReadyParentDep();
+                        $this.$update();
+                    });
                 });
 
             },
             onActionBefore: function (callback) {
                 return this.on('_actionBefore_', callback);
+            },
+            onInitDataSrv: function (callback) {
+                return this.on('_initdatasrv_', callback);
             },
             onInitData: function (callback) {
                 return this.on('_initdata_', callback);
@@ -5278,7 +5285,7 @@
 
     var _renderForeachRegx = /[ ]*([^ ]+)[ ]+in[ ]+(?:(.+)[ ]+tmpl[ ]*=[ ]*(.+)[/]|(.+))*/g;//for 内容分析
     var _endForRegx = /\/\s*$/; //是否单行for, {{for item in list tmpl=$aaaa /}}
-    var _commentRegx = /<!--\s*#(.*?)-->/g;//去除注释<!--# asdfasdf-->
+    var _commentRegx = /<!--\s*\#(?:.|\n)*?-->/g;//去除注释<!--# asdfasdf-->
     var _newItem = function (content, isIf, isEnd, isTag, view, node, isElse, isForeach, role) {
         var item = {
             isIf: isIf === true,
@@ -5342,7 +5349,7 @@
             return new Function('$view', '$data', 'bingo', [
                 'try {',
                     view ? 'with ($view) {' : '',
-                        'with ($data) {',
+                        'with ($data || {}) {',
                             'return ' + evaltext + ';',
                         '}',
                     view ? '}' : '',
@@ -5624,6 +5631,11 @@
     }, _render = function (compileData, view, node, list, itemName, parentData, parentWithIndex, outWithDataList) {
         bingo.isString(itemName) || (itemName = 'item');
         var htmls = [];
+        var withLen = outWithDataList ? outWithDataList.length : -1, withHtml = null;
+        if (withLen >= 0) {
+            withHtml = bingo.compile.injectTmplWithDataIndex('', -1, withLen - 1);
+            htmls.push(withHtml);
+        }
 
         //header
         compileData.header && htmls.push(_renderCompile(compileData.header.children, view, node, parentData, parentWithIndex, outWithDataList));
@@ -5648,6 +5660,10 @@
                     htmls.push(_renderItem(compileList, view, node, item, itemName, index, count, parentData, parentWithIndex, outWithDataList));
                 });
             }
+        }
+
+        if (withLen >= 0) {
+            htmls.push(withHtml);
         }
 
         //footer
@@ -6254,8 +6270,9 @@
                 var bind = function (evName, callback) {
                     $node.on(evName, function () {
                         //console.log(eventName);
-                        callback.apply(this, arguments);
+                        var r = callback.apply(this, arguments);
                         $view.$update();
+                        return r;
                     });
                 };
 

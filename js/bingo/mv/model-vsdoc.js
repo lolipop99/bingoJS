@@ -24,7 +24,7 @@
         bingo.eachProp(this, function (item, n) {
             if (bingo.isVariable(o[n]))
                 o[n](item);
-            else if (n != '_isModel_' && n != 'toObject' && n != 'fromObject')
+            else if (n != '_isModel_' && n != 'toObject' && n != 'fromObject' && n != '_p_')
                 o[n] = bingo.variableOf(item);
         });
         return o;

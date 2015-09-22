@@ -2578,7 +2578,7 @@ window.intellisenseLogMessage = function (msg) {
         bingo.eachProp(this, function (item, n) {
             if (bingo.isVariable(o[n]))
                 o[n](item);
-            else if (n != '_isModel_' && n != 'toObject' && n != 'fromObject')
+            else if (n != '_isModel_' && n != 'toObject' && n != 'fromObject' && n != '_p_')
                 o[n] = bingo.variableOf(item);
         });
         return o;
@@ -3173,9 +3173,16 @@ window.intellisenseLogMessage = function (msg) {
                 /// <param name="callback" type="function()"></param>
                 return this;
             },
+            onInitDataSrv: function (callback) {
+                /// <summary>
+                /// 初始数据用事件(用于服务或factory), onInitDataSrv --> onInitData --> onReady
+                /// </summary>
+                /// <param name="callback" type="function()"></param>
+                return this;
+            },
             onInitData: function (callback) {
                 /// <summary>
-                /// 初始数据用事件
+                /// 初始数据用事件(用于业务), onInitDataSrv --> onInitData --> onReady
                 /// </summary>
                 /// <param name="callback" type="function()"></param>
                 return this;

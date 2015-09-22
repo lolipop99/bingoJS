@@ -1,3 +1,14 @@
+#### 1.2.0
+1. 修正model.toObject输出内部属性问题
+
+2. 修正render for后with数据不准确问题
+
+3. 添加view.onInitDataSrv事件， 添加一个粒度初始数据, 用于服务或factory初始数据：onInitDataSrv --> onInitData --> onReady
+
+4. 对所有功能进行了测试、优化与适当代码调整
+
+5. 同步更新文档
+
 #### 1.1.0821
 1. 删除Class clone方法, clone情况比较复杂，现在只简单提供$prop方法代替
 
@@ -189,6 +200,8 @@ bingo.ajax('').holdParams(function () {
 })
 ```
 5. 添加$attr.$resultsNoFilter和$attr.$getValNoFilter方法，提升variable绑定性能
+
+==============================文档
 
 6. 添加bg-enabled模板指令
 

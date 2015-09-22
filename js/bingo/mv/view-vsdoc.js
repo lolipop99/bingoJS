@@ -29,9 +29,16 @@
                 /// <param name="callback" type="function()"></param>
                 return this;
             },
+            onInitDataSrv: function (callback) {
+                /// <summary>
+                /// 初始数据用事件(用于服务或factory), onInitDataSrv --> onInitData --> onReady
+                /// </summary>
+                /// <param name="callback" type="function()"></param>
+                return this;
+            },
             onInitData: function (callback) {
                 /// <summary>
-                /// 初始数据用事件
+                /// 初始数据用事件(用于业务), onInitDataSrv --> onInitData --> onReady
                 /// </summary>
                 /// <param name="callback" type="function()"></param>
                 return this;

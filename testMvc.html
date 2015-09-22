@@ -156,6 +156,12 @@
                 <option value="{{: item.id}}">{{: item.text | text}}</option>
             </select>
         </div>
+        <div>
+            bg-select-as：
+            <select bg-select-as="selectTest">
+                <option value="{{: item.id}}">{{: item.text | text}}</option>
+            </select>
+        </div>
 
         <div> =====事件=========== </div>
         <div>
@@ -208,7 +214,9 @@
                         {{if cItem_odd}}
                             <input type="button" value="{{: cItem}}" bg-click="forItemClick(cItem, item)" />
                         {{/if}}
+                        {{footer}}<input type="button" value="footer" bg-click="forItemClick(item, $parent)" />{{/footer}}
                     {{/for}}
+                    <input type="button" value="end" bg-click="forItemClick(item)" />
                     ]
                 </div>
             </script>
@@ -235,6 +243,7 @@
         </div>
         <!--使用for语句从fortmpl1取模板内容-->
         <div bg-for="mItem in {list:[1,2,3]}">
+            <!--#aaaaa--><!--bbbb-->
             {{for item in mItem.list tmpl=test/tmpl/for.html /}}
         </div>
 
@@ -259,6 +268,7 @@
         </script>
 
     </div>
+    <!--viewCommand end111-->
     <!--viewCommand end-->
 
     <div >

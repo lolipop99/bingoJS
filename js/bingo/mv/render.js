@@ -59,7 +59,7 @@
 
     var _renderForeachRegx = /[ ]*([^ ]+)[ ]+in[ ]+(?:(.+)[ ]+tmpl[ ]*=[ ]*(.+)[/]|(.+))*/g;//for 内容分析
     var _endForRegx = /\/\s*$/; //是否单行for, {{for item in list tmpl=$aaaa /}}
-    var _commentRegx = /<!--\s*#(.*?)-->/g;//去除注释<!--# asdfasdf-->
+    var _commentRegx = /<!--\s*\#(?:.|\n)*?-->/g;//去除注释<!--# asdfasdf-->
     var _newItem = function (content, isIf, isEnd, isTag, view, node, isElse, isForeach, role) {
         var item = {
             isIf: isIf === true,
@@ -123,7 +123,7 @@
             return new Function('$view', '$data', 'bingo', [
                 'try {',
                     view ? 'with ($view) {' : '',
-                        'with ($data) {',
+                        'with ($data || {}) {',
                             'return ' + evaltext + ';',
                         '}',
                     view ? '}' : '',
@@ -405,6 +405,11 @@
     }, _render = function (compileData, view, node, list, itemName, parentData, parentWithIndex, outWithDataList) {
         bingo.isString(itemName) || (itemName = 'item');
         var htmls = [];
+        var withLen = outWithDataList ? outWithDataList.length : -1, withHtml = null;
+        if (withLen >= 0) {
+            withHtml = bingo.compile.injectTmplWithDataIndex('', -1, withLen - 1);
+            htmls.push(withHtml);
+        }
 
         //header
         compileData.header && htmls.push(_renderCompile(compileData.header.children, view, node, parentData, parentWithIndex, outWithDataList));
@@ -429,6 +434,10 @@
                     htmls.push(_renderItem(compileList, view, node, item, itemName, index, count, parentData, parentWithIndex, outWithDataList));
                 });
             }
+        }
+
+        if (withLen >= 0) {
+            htmls.push(withHtml);
         }
 
         //footer

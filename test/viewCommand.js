@@ -36,6 +36,19 @@
         };
     });
 
+    bingo.command('bg-select-as', function () {
+        return {
+            as: function ($node) {
+                var attrValue = $node.attr('bg-select-as');
+
+                return [{
+                    name: 'bg-render', value: ['item in ', attrValue, '.list'].join('')
+                }, {
+                    name: 'bg-model', value: [attrValue, '.id'].join('')
+                }];
+            }
+        };
+    });
 
     bingo.command('helloReplace', function () {
         return {

@@ -17,8 +17,9 @@
                 var bind = function (evName, callback) {
                     $node.on(evName, function () {
                         //console.log(eventName);
-                        callback.apply(this, arguments);
+                        var r = callback.apply(this, arguments);
                         $view.$update();
+                        return r;
                     });
                 };
 
