@@ -20,8 +20,8 @@
     var _makeAutoIdTemp = 0, _makeAutoIdTempPointer = 0;
 
     var bingo = window.bingo = {
-        //主版本号.子版本号.修正版本号
-        version: { major: 1, minor: 2, rev: 0, toString: function () { return [this.major, this.minor, this.rev].join('.'); } },
+        //主版本号.子版本号.修正版本号.编译版本号(日期)
+        version: { major: 1, minor: 2, rev: 1, build:151019, toString: function () { return [this.major, this.minor, this.rev, this.build].join('.'); } },
         isDebug: false,
         prdtVersion: '',
         supportWorkspace: false,
@@ -274,14 +274,10 @@
             return to;
         },
         cloneArray: function (list, deep) {
-            var lt = [];
-            var t = null;
-            var len = list.length;
-            for (var i = 0; i < len; i++) {
-                t = list[i];
-                if (deep !== false) {
-                    t = this.clone(t, deep);
-                }
+            if (deep === false) return list.concat();
+            var lt = [], t;
+            for (var i = 0, len = list.length; i < len; i++) {
+                t = this.clone(list[i], true);
                 lt.push(t);
             }
             return lt;
@@ -5636,38 +5632,42 @@
             withHtml = bingo.compile.injectTmplWithDataIndex('', -1, withLen - 1);
             htmls.push(withHtml);
         }
+        var isArray = bingo.isArray(list);
+        var count = isArray ? list.length : 0;
 
         //header
-        compileData.header && htmls.push(_renderCompile(compileData.header.children, view, node, parentData, parentWithIndex, outWithDataList));
+        compileData.header && htmls.push(_renderItem(compileData.header.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList));
 
         if (bingo.isNull(list)) {
             //null, loading或empty
             var cT = compileData.loading || compileData.empty;
-            cT && htmls.push(_renderCompile(cT.children, view, node, parentData, parentWithIndex, outWithDataList));
+            //cT && htmls.push(_renderCompile(cT.children, view, node, parentData, parentWithIndex, outWithDataList));
+            cT && htmls.push(_renderItem(cT.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList));
         } else {
 
-            if (!bingo.isArray(list)) list = [list];
+            if (!isArray) list = [list];
 
             if (list.length == 0) {
                 //empty
                 var cT = compileData.empty || compileData.loading;
-                cT && htmls.push(_renderCompile(cT.children, view, node, parentData, parentWithIndex, outWithDataList));
+                //cT && htmls.push(_renderCompile(cT.children, view, node, parentData, parentWithIndex, outWithDataList));
+                cT && htmls.push(_renderItem(cT.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList));
             } else {
                 //body
                 var compileList = compileData.body;
-                var count = list.length;
                 bingo.each(list, function (item, index) {
                     htmls.push(_renderItem(compileList, view, node, item, itemName, index, count, parentData, parentWithIndex, outWithDataList));
                 });
             }
         }
 
+        //footer
+        //compileData.footer && htmls.push(_renderCompile(compileData.footer.children, view, node, parentData, parentWithIndex, outWithDataList));
+        compileData.footer && htmls.push(_renderItem(compileData.footer.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList));
+
         if (withLen >= 0) {
             htmls.push(withHtml);
         }
-
-        //footer
-        compileData.footer && htmls.push(_renderCompile(compileData.footer.children, view, node, parentData, parentWithIndex, outWithDataList));
 
         return htmls.join('');
     };
@@ -5991,14 +5991,20 @@
             onChange: function (callback) {
                 var $this = this;
                 this.isRoute() && callback && this.ownerNode().on('bg-location-change', function (e, url) {
+                    e.stopPropagation();
+                    e.preventDefault();
                     callback.call($this, url);
+                    return false;
                 });
             },
             onLoaded: function (callback) {
                 var $this = this;
                 this.isRoute() && callback && this.ownerNode().on('bg-location-loaded', function (e, url) {
+                    e.stopPropagation();
+                    e.preventDefault();
                     callback.call($this, url);
                     bingo.location.onLoaded.trigger([$this]);
+                    return false;
                 });
             },
             url: function () {
@@ -6255,8 +6261,9 @@
 (function (bingo) {
     /*
         使用方法:
-        bg-event="{click:function(e){}, dblclick:helper.dblclick}"
+        bg-event="{click:function(e){}, dblclick:helper.dblclick, change:['input', helper.dblclick]}"
         bg-click="helper.click"     //绑定到方法
+        bg-click="['input', helper.click]"     //绑定到数组, 等效于$().on('click', 'input', helper.click)
         bg-click="helper.click()"   //直接执行方法
     */
     bingo.each('event,click,blur,change,dblclick,focus,focusin,focusout,keydown,keypress,keyup,mousedown,mouseenter,mouseleave,mousemove,mouseout,mouseover,mouseup,resize,scroll,select,submit,contextmenu'.split(','), function (eventName) {
@@ -6268,17 +6275,21 @@
                 /// <param name="$attr" value="bingo.view.viewnodeAttrClass()"></param>
 
                 var bind = function (evName, callback) {
-                    $node.on(evName, function () {
-                        //console.log(eventName);
-                        var r = callback.apply(this, arguments);
-                        $view.$update();
-                        return r;
-                    });
+                    if (bingo.isArray(callback))
+                        $node.on.apply($node, [].concat(evName, callback));
+                    else {
+                        $node.on(evName, function () {
+                            //console.log(eventName);
+                            var r = callback.apply(this, arguments);
+                            $view.$update();
+                            return r;
+                        });
+                    }
                 };
 
                 if (eventName != 'event') {
-                    var fn = $attr.$value();
-                    if (!bingo.isFunction(fn))
+                    var fn = /^\s*\[(.|\n)*\]\s*$/g.test($attr.$attrValue()) ? $attr.$results() : $attr.$value();
+                    if (!bingo.isFunction(fn) && !bingo.isArray(fn))
                         fn = function (e) { return $attr.$eval(e); };
                     bind(eventName, fn);
                 } else {
@@ -6288,7 +6299,7 @@
                         for (var n in evObj) {
                             if (bingo.hasOwnProp(evObj, n)) {
                                 fn = evObj[n];
-                                if (bingo.isFunction(fn))
+                                if (bingo.isFunction(fn) || bingo.isArray(fn))
                                     bind(n, fn);
                             }
                         }
@@ -6473,7 +6484,21 @@
                 });
 
                 $attr.$init(function () {
-                    return $attr.$attrValue();
+                    var value = $attr.$attrValue();
+                    var pview = $attr.view().$parentView();
+                    var url = bingo.datavalue(pview, value);
+                    if (bingo.isUndefined(bingo.isUndefined(url)))
+                        url = bingo.datavalue(window, value);
+
+                    if (bingo.isUndefined(url)) {
+                        return value;
+                    } else {
+                        pview.$subs('url', function (value) {
+                            if ($attr.isDisposed) return;
+                            value && $location.href(value);
+                        });
+                        return url;
+                    }
                 }, function (value) {
                     value && $location.href(value);
                 });

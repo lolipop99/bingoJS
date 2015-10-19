@@ -1,3 +1,22 @@
+#### 1.2.1.151019
+
+1. 优化clone方法
+
+2. 增强模板指令（事件），支持数组绑定
+```
+<div bg-change="['input', helper.changeFn]">
+    <input />
+    <input />
+</div>
+```
+
+3. 增强render的header等指令
+
+4. 修正多层bg-route时， locaction.onLoaded事件向出冒泡产出不正确后果
+
+5. 添加bg-route支持变量绑定
+
+
 #### 1.2.0
 1. 修正model.toObject输出内部属性问题
 

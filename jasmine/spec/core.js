@@ -346,6 +346,12 @@ describe('bingo.core - ' + helper.versionString, function () {
             expect(obj.c != obj1.c).toEqual(true);
             expect(obj.list != obj1.list).toEqual(true);
 
+            var list = [{ a: 1 }, 2];
+            var list1 = bingo.clone(list, false, true);
+            list1[1] = 3
+            expect(list).not.toEqual(list1);
+
+
             //不复制以下内容, 直接返回
             expect(bingo.clone(window) === window).toEqual(true);
             expect(bingo.clone(document) === document).toEqual(true);

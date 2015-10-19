@@ -34,7 +34,21 @@
                 });
 
                 $attr.$init(function () {
-                    return $attr.$attrValue();
+                    var value = $attr.$attrValue();
+                    var pview = $attr.view().$parentView();
+                    var url = bingo.datavalue(pview, value);
+                    if (bingo.isUndefined(bingo.isUndefined(url)))
+                        url = bingo.datavalue(window, value);
+
+                    if (bingo.isUndefined(url)) {
+                        return value;
+                    } else {
+                        pview.$subs('url', function (value) {
+                            if ($attr.isDisposed) return;
+                            value && $location.href(value);
+                        });
+                        return url;
+                    }
                 }, function (value) {
                     value && $location.href(value);
                 });

@@ -410,38 +410,42 @@
             withHtml = bingo.compile.injectTmplWithDataIndex('', -1, withLen - 1);
             htmls.push(withHtml);
         }
+        var isArray = bingo.isArray(list);
+        var count = isArray ? list.length : 0;
 
         //header
-        compileData.header && htmls.push(_renderCompile(compileData.header.children, view, node, parentData, parentWithIndex, outWithDataList));
+        compileData.header && htmls.push(_renderItem(compileData.header.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList));
 
         if (bingo.isNull(list)) {
             //null, loading或empty
             var cT = compileData.loading || compileData.empty;
-            cT && htmls.push(_renderCompile(cT.children, view, node, parentData, parentWithIndex, outWithDataList));
+            //cT && htmls.push(_renderCompile(cT.children, view, node, parentData, parentWithIndex, outWithDataList));
+            cT && htmls.push(_renderItem(cT.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList));
         } else {
 
-            if (!bingo.isArray(list)) list = [list];
+            if (!isArray) list = [list];
 
             if (list.length == 0) {
                 //empty
                 var cT = compileData.empty || compileData.loading;
-                cT && htmls.push(_renderCompile(cT.children, view, node, parentData, parentWithIndex, outWithDataList));
+                //cT && htmls.push(_renderCompile(cT.children, view, node, parentData, parentWithIndex, outWithDataList));
+                cT && htmls.push(_renderItem(cT.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList));
             } else {
                 //body
                 var compileList = compileData.body;
-                var count = list.length;
                 bingo.each(list, function (item, index) {
                     htmls.push(_renderItem(compileList, view, node, item, itemName, index, count, parentData, parentWithIndex, outWithDataList));
                 });
             }
         }
 
+        //footer
+        //compileData.footer && htmls.push(_renderCompile(compileData.footer.children, view, node, parentData, parentWithIndex, outWithDataList));
+        compileData.footer && htmls.push(_renderItem(compileData.footer.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList));
+
         if (withLen >= 0) {
             htmls.push(withHtml);
         }
-
-        //footer
-        compileData.footer && htmls.push(_renderCompile(compileData.footer.children, view, node, parentData, parentWithIndex, outWithDataList));
 
         return htmls.join('');
     };

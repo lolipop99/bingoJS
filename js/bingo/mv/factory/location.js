@@ -76,14 +76,20 @@
             onChange: function (callback) {
                 var $this = this;
                 this.isRoute() && callback && this.ownerNode().on('bg-location-change', function (e, url) {
+                    e.stopPropagation();
+                    e.preventDefault();
                     callback.call($this, url);
+                    return false;
                 });
             },
             onLoaded: function (callback) {
                 var $this = this;
                 this.isRoute() && callback && this.ownerNode().on('bg-location-loaded', function (e, url) {
+                    e.stopPropagation();
+                    e.preventDefault();
                     callback.call($this, url);
                     bingo.location.onLoaded.trigger([$this]);
+                    return false;
                 });
             },
             url: function () {

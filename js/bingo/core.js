@@ -18,8 +18,8 @@
     var _makeAutoIdTemp = 0, _makeAutoIdTempPointer = 0;
 
     var bingo = window.bingo = {
-        //主版本号.子版本号.修正版本号
-        version: { major: 1, minor: 2, rev: 0, toString: function () { return [this.major, this.minor, this.rev].join('.'); } },
+        //主版本号.子版本号.修正版本号.编译版本号(日期)
+        version: { major: 1, minor: 2, rev: 1, build:151019, toString: function () { return [this.major, this.minor, this.rev, this.build].join('.'); } },
         isDebug: false,
         prdtVersion: '',
         supportWorkspace: false,
@@ -272,14 +272,10 @@
             return to;
         },
         cloneArray: function (list, deep) {
-            var lt = [];
-            var t = null;
-            var len = list.length;
-            for (var i = 0; i < len; i++) {
-                t = list[i];
-                if (deep !== false) {
-                    t = this.clone(t, deep);
-                }
+            if (deep === false) return list.concat();
+            var lt = [], t;
+            for (var i = 0, len = list.length; i < len; i++) {
+                t = this.clone(list[i], true);
                 lt.push(t);
             }
             return lt;

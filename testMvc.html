@@ -210,14 +210,14 @@
                     <input type="button" value="test" bg-click="forItemClick(item)" />
                     [
                     {{for cItem in item.items}}
-                        {{header}}<input type="button" value="header" bg-click="forItemClick(item)" />{{/header}}
+                        {{header}}<input type="button" value="header" bg-click="forItemClick(item, $parent)" />{{/header}}
                         {{if cItem_odd}}
                             <input type="button" value="{{: cItem}}" bg-click="forItemClick(cItem, item)" />
                         {{/if}}
                         {{footer}}<input type="button" value="footer" bg-click="forItemClick(item, $parent)" />{{/footer}}
                     {{/for}}
-                    <input type="button" value="end" bg-click="forItemClick(item)" />
                     ]
+                    <input type="button" value="end" bg-click="forItemClick(item)" />
                 </div>
             </script>
         </div>

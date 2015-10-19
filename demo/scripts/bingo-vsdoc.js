@@ -57,8 +57,8 @@ window.intellisenseLogMessage = function (msg) {
     var _makeAutoIdTemp = 0, _makeAutoIdTempPointer = 0;
 
     var bingo = window.bingo = window.bingo = {
-        //主版本号.子版本号.修正版本号
-        version: { major: 1, minor: 1, rev: 0, toString: function () { return [this.major, this.minor, this.rev].join('.') } },
+        //主版本号.子版本号.修正版本号.编译版本号(日期)
+        version: { major: 1, minor: 2, rev: 1, build: 151016, toString: function () { return [this.major, this.minor, this.rev, this.build].join('.'); } },
         ///<field>调试开关, 默认false</field>
         isDebug: false,
         ///<field>产品版本号</field>
@@ -3996,14 +3996,20 @@ window.intellisenseLogMessage = function (msg) {
             onChange: function (callback) {
                 var $this = this;
                 this.isRoute() && callback && this.ownerNode().on('bg-location-change', function (e, url) {
+                    e.stopPropagation();
+                    e.preventDefault();
                     callback.call($this, url);
+                    return false;
                 });
             },
             onLoaded: function (callback) {
                 var $this = this;
                 this.isRoute() && callback && this.ownerNode().on('bg-location-loaded', function (e, url) {
+                    e.stopPropagation();
+                    e.preventDefault();
                     callback.call($this, url);
                     bingo.location.onLoaded.trigger([$this]);
+                    return false;
                 });
             },
             url: function () {
