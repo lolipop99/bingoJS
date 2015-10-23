@@ -21,7 +21,7 @@
 
     var bingo = window.bingo = {
         //主版本号.子版本号.修正版本号.编译版本号(日期)
-        version: { major: 1, minor: 2, rev: 1, build:151019, toString: function () { return [this.major, this.minor, this.rev, this.build].join('.'); } },
+        version: { major: 1, minor: 2, rev: 1, build:151023, toString: function () { return [this.major, this.minor, this.rev, this.build].join('.'); } },
         isDebug: false,
         prdtVersion: '',
         supportWorkspace: false,
@@ -117,7 +117,7 @@
         inArray: function (element, list, index, rever) {
             var callback = this.isFunction(element) ? element : null;
             if (arguments.length == 2 && !callback)
-                return list && list.indexOf && list.indexOf(element);
+                if (list && list.indexOf) return list.indexOf(element);
             var indexRef = -1;
             //debugger;
             this.each(list, function (item, i) {
