@@ -107,6 +107,8 @@
             cacheMax: -1,
             //是否包函url query部分作为key 缓存数据, 默认true
             cacheQurey: true,
+            //自定义cache key, 默认为null, 以url为key
+            cacheKey: null,
             //hold server数据, function(response, isSuccess, xhr){return return [response, isSuccess, xhr];}
             holdServer: null,
             //处理参数, function(){ return this.param()}

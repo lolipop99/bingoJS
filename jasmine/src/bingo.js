@@ -1,4 +1,7 @@
 ﻿/// <reference path="../jquery/jquery-1.8.1.js" />
+
+//https://git.oschina.net/bingoJS/bingoJS
+
 (window.console && window.console.log) || (window.console = { log: function () { }, error: function () { }, info: function () { }, table: function () { } });
 ﻿
 ;(function () {
@@ -21,7 +24,7 @@
 
     var bingo = window.bingo = {
         //主版本号.子版本号.修正版本号.编译版本号(日期)
-        version: { major: 1, minor: 2, rev: 1, build:151023, toString: function () { return [this.major, this.minor, this.rev, this.build].join('.'); } },
+        version: { major: 1, minor: 2, rev: 2, build: 151124, toString: function () { return [this.major, this.minor, this.rev, this.build].join('.'); } },
         isDebug: false,
         prdtVersion: '',
         supportWorkspace: false,
@@ -1134,7 +1137,9 @@
                 /// <summary>
                 /// 映射(改造)<br />
                 /// select('id');<br />
+                /// select('id', true);<br />
                 /// select(function(item, index){ return {a:item.__a, b:item.c+item.d} ;});
+                /// select(function(item, index){ return {a:item.__a, b:item.c+item.d} ;}, true);
                 /// </summary>
                 /// <param name="fn" type="function(item, index)"></param>
                 /// <param name="isMerge">是否合并数组</param>
@@ -2193,6 +2198,7 @@
                     else {
                         var contextFn = this.context();
                         if (bingo.isFunction(contextFn)) {
+                            this.context(null);
                             return _add(this, key, contextFn(), this.max());
                         }
                     }
@@ -3178,7 +3184,7 @@
                 cKey = '';
             var cacheTo = servers.cacheTo();
             if (cacheTo) {
-                cKey = servers.cacheQurey() ? url : url.split('?')[0];
+                cKey = servers.cacheKey() || (servers.cacheQurey() ? url : url.split('?')[0]);
                 if (!bingo.equals(datas, {}))
                     cKey = [cKey, window.JSON ? JSON.stringify(datas) : $.getJSON(datas)].join('_');
                 cKey = cKey.toLowerCase();
@@ -3250,7 +3256,10 @@
             cacheTo: null,
             //缓存数量， 小于等于0, 不限制数据
             cacheMax: -1,
+            //是否包函url query部分作为key 缓存数据, 默认true
             cacheQurey: true,
+            //自定义cache key, 默认为null, 以url为key
+            cacheKey:null,
             holdServer: null,
             holdParams: null
         });
@@ -5253,7 +5262,7 @@
             //    if (!compileList) return tmpl;
             //    return _renderItem(compileList, view, node, data, itemName, itemIndex, count, parentData, parentWithIndex, outWithDataList);
             //},
-            render: function (list, itemName, parentData, parentWithIndex, outWithDataList) {
+            render: function (list, itemName, parentData, parentWithIndex, outWithDataList, formatter) {
                 /// <summary>
                 /// 
                 /// </summary>
@@ -5262,8 +5271,9 @@
                 /// <param name="parentData">可选, 上级数据</param>
                 /// <param name="parentWithIndex">可选, 上级withindex, 如果没有应该为 -1</param>
                 /// <param name="outWithDataList">可选, 数组， 收集withDataList</param>
+                /// <param name="formatter" type="function(s, role, item)">可选, 格式化</param>
                 if (!compileData) return tmpl;
-                return _render(compileData, view, node, list, itemName, parentData, parentWithIndex, outWithDataList);
+                return _render(compileData, view, node, list, itemName, parentData, parentWithIndex, outWithDataList, formatter);
             }
         };
     };
@@ -5366,7 +5376,7 @@
 
     var _compile = function (s, view, node) {
         var list = [],
-            pos = 0, parents = [], _isTmpl = false, tmplCount = 0,
+            pos = 0, parents = [], _isTmpl = false, tmplCount = 0, _tmplContext = '',
             _last = function (len) { return (len > 0) ? parents[len - 1].children : list; },
             _parent = function (len) { return (len > 0) ? parents.pop().children : list; };
         s.replace(bingo.render.regex, function (findText, f1, f2, f3, findPos, allText) {
@@ -5389,8 +5399,13 @@
                 _isTmpl = isTmpl;
                 //curList.push(textItem);
                 if (isTmpl) {
+                    curList.push(textItem);
                     pos = findPos + findText.length;
                     tmplCount = 1;
+                    _tmplContext = bingo.trim(f3);
+                    if (!bingo.isNullEmpty(_tmplContext)) {
+                        curList.push(_newItem(['<script type="', _tmplContext, '">'].join('')));
+                    }
                     return;
                 }
             } else {
@@ -5408,6 +5423,11 @@
 
                 if (_isTmpl) {
                     curList.push(_newItem(findText));
+                } else {
+                    if (!bingo.isNullEmpty(_tmplContext)) {
+                        curList.push(_newItem(['</script>'].join('')));
+                        _tmplContext = '';
+                    }
                 }
                 pos = findPos + findText.length;
                 return;
@@ -5606,6 +5626,7 @@
     }, _renderItem = function (compileList, view, node, data, itemName, itemIndex, count, parentData, parentWithIndex, outWithDataList) {
         var obj = parentData ? bingo.clone(parentData, false) : {};
         obj.$parent = parentData;
+        obj.itemName = itemName;
         obj[[itemName, 'index'].join('_')] = obj.$index = itemIndex;
         obj[[itemName, 'count'].join('_')] = obj.$count = count;
         obj[[itemName, 'first'].join('_')] = obj.$first = (itemIndex == 0);
@@ -5624,9 +5645,9 @@
 
         return outWithDataList ? bingo.compile.injectTmplWithDataIndex(str, injectIndex, parentWithIndex) : str;
 
-    }, _render = function (compileData, view, node, list, itemName, parentData, parentWithIndex, outWithDataList) {
+    }, _render = function (compileData, view, node, list, itemName, parentData, parentWithIndex, outWithDataList, formatter) {
         bingo.isString(itemName) || (itemName = 'item');
-        var htmls = [];
+        var htmls = [], hT = '';
         var withLen = outWithDataList ? outWithDataList.length : -1, withHtml = null;
         if (withLen >= 0) {
             withHtml = bingo.compile.injectTmplWithDataIndex('', -1, withLen - 1);
@@ -5636,13 +5657,20 @@
         var count = isArray ? list.length : 0;
 
         //header
-        compileData.header && htmls.push(_renderItem(compileData.header.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList));
+        if (compileData.header) {
+            hT = _renderItem(compileData.header.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList);
+            formatter && (hT = formatter(hT, 'header', null, -1));
+            htmls.push(hT);
+        }
 
         if (bingo.isNull(list)) {
             //null, loading或empty
             var cT = compileData.loading || compileData.empty;
-            //cT && htmls.push(_renderCompile(cT.children, view, node, parentData, parentWithIndex, outWithDataList));
-            cT && htmls.push(_renderItem(cT.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList));
+            if (cT) {
+                hT = _renderItem(cT.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList);
+                formatter && (hT = formatter(hT, compileData.loading === cT ? 'loading' : 'empty', null, -1));
+                htmls.push(hT);
+            }
         } else {
 
             if (!isArray) list = [list];
@@ -5650,20 +5678,28 @@
             if (list.length == 0) {
                 //empty
                 var cT = compileData.empty || compileData.loading;
-                //cT && htmls.push(_renderCompile(cT.children, view, node, parentData, parentWithIndex, outWithDataList));
-                cT && htmls.push(_renderItem(cT.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList));
+                if (cT) {
+                    hT = _renderItem(cT.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList);
+                    formatter && (hT = formatter(hT, compileData.loading === cT ? 'loading' : 'empty', null, -1));
+                    htmls.push(hT);
+                }
             } else {
                 //body
                 var compileList = compileData.body;
                 bingo.each(list, function (item, index) {
-                    htmls.push(_renderItem(compileList, view, node, item, itemName, index, count, parentData, parentWithIndex, outWithDataList));
+                    hT = _renderItem(compileList, view, node, item, itemName, index, count, parentData, parentWithIndex, outWithDataList);
+                    formatter && (hT = formatter(hT, 'body', item, index));
+                    htmls.push(hT);
                 });
             }
         }
 
         //footer
-        //compileData.footer && htmls.push(_renderCompile(compileData.footer.children, view, node, parentData, parentWithIndex, outWithDataList));
-        compileData.footer && htmls.push(_renderItem(compileData.footer.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList));
+        if (compileData.footer) {
+            hT = _renderItem(compileData.footer.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList);
+            formatter && (hT = formatter(hT, 'footer', null, -1));
+            htmls.push(hT);
+        }
 
         if (withLen >= 0) {
             htmls.push(withHtml);
@@ -6202,7 +6238,7 @@
         bg-checked="true" //直接表达式
         bg-checked="helper.checked" //绑定到变量, 双向绑定
     */
-    bingo.each('attr,prop,src,checked,disabled,enabled,readonly,class'.split(','), function (attrName) {
+    bingo.each('attr,prop,src,checked,unchecked,disabled,enabled,readonly,class'.split(','), function (attrName) {
         bingo.command('bg-' + attrName, function () {
 
             return ['$view', '$attr', '$node', function ($view, $attr, $node) {
@@ -6221,6 +6257,9 @@
                             break;
                         case 'enabled':
                             $node.prop('disabled', !val);
+                            break;
+                        case 'unchecked':
+                            $node.prop('checked', !val);
                             break;
                         case 'disabled':
                         case 'readonly':
@@ -6242,11 +6281,11 @@
                     _set(value);
                 });
 
-                if (attrName == 'checked') {
+                if (attrName == 'checked' || attrName == 'unchecked') {
                     //如果是checked, 双向绑定
                     $node.click(function () {
                         var value = $node.prop('checked');
-                        $attr.$value(value);
+                        $attr.$value(attrName == 'checked' ? value : !value);
                         $view.$update();
                     });
                 }
@@ -6369,7 +6408,9 @@
                         jElement.html('');
                         //if (!bingo.isArray(datas)) datas = bingo.isNull(datas) ? [] : [datas];
                         var withDataList = [];//收集数据
-                        html = renderObj.render(datas, _itemName, null, -1, withDataList);
+                        var parenData = $attr.getWithData();
+                        var parenDataIndex = parenData ? parenData.$index : -1;
+                        html = renderObj.render(datas, _itemName, parenData, parenDataIndex, withDataList);
                         //console.log(withDataList);
                         //使用withDataList进行数组批量编译
                         bingo.isNullEmpty(html) || $compile().fromHtml(html).withDataList(withDataList).appendTo(jElement).compile();
@@ -6889,6 +6930,23 @@
         return {
             //是否编译子节点, 默认为true
             compileChild: false
+        };
+    });
+
+    bingo.command('bg-loaded', function () {
+
+        return {
+            //优先级, 越大越前, 默认50
+            priority: 5,
+            link: ['$attr', function ($attr) {
+
+                $attr.$init(function () {
+                    return 1;
+                }, function (value) {
+                    $attr.$eval();
+                });
+
+            }]
         };
     });
 

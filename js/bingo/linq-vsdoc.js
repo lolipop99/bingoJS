@@ -62,7 +62,9 @@
                 /// <summary>
                 /// 映射(改造)<br />
                 /// select('id');<br />
+                /// select('id', true);<br />
                 /// select(function(item, index){ return {a:item.__a, b:item.c+item.d} ;});
+                /// select(function(item, index){ return {a:item.__a, b:item.c+item.d} ;}, true);
                 /// </summary>
                 /// <param name="fn" type="function(item, index)"></param>
                 /// <param name="isMerge">可选, 是否合并数组, 默认false</param>

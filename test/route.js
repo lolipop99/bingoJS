@@ -1,6 +1,4 @@
-﻿/// <reference path="lib.js" />
-
-//测试route
+﻿//测试route
 (function (bingo, $) {
     //version 1.1.0
     "use strict";

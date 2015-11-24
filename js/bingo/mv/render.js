@@ -31,7 +31,7 @@
             //    if (!compileList) return tmpl;
             //    return _renderItem(compileList, view, node, data, itemName, itemIndex, count, parentData, parentWithIndex, outWithDataList);
             //},
-            render: function (list, itemName, parentData, parentWithIndex, outWithDataList) {
+            render: function (list, itemName, parentData, parentWithIndex, outWithDataList, formatter) {
                 /// <summary>
                 /// 
                 /// </summary>
@@ -40,8 +40,9 @@
                 /// <param name="parentData">可选, 上级数据</param>
                 /// <param name="parentWithIndex">可选, 上级withindex, 如果没有应该为 -1</param>
                 /// <param name="outWithDataList">可选, 数组， 收集withDataList</param>
+                /// <param name="formatter" type="function(s, role, item)">可选, 格式化</param>
                 if (!compileData) return tmpl;
-                return _render(compileData, view, node, list, itemName, parentData, parentWithIndex, outWithDataList);
+                return _render(compileData, view, node, list, itemName, parentData, parentWithIndex, outWithDataList, formatter);
             }
         };
     };
@@ -144,7 +145,7 @@
 
     var _compile = function (s, view, node) {
         var list = [],
-            pos = 0, parents = [], _isTmpl = false, tmplCount = 0,
+            pos = 0, parents = [], _isTmpl = false, tmplCount = 0, _tmplContext = '',
             _last = function (len) { return (len > 0) ? parents[len - 1].children : list; },
             _parent = function (len) { return (len > 0) ? parents.pop().children : list; };
         s.replace(bingo.render.regex, function (findText, f1, f2, f3, findPos, allText) {
@@ -167,8 +168,13 @@
                 _isTmpl = isTmpl;
                 //curList.push(textItem);
                 if (isTmpl) {
+                    curList.push(textItem);
                     pos = findPos + findText.length;
                     tmplCount = 1;
+                    _tmplContext = bingo.trim(f3);
+                    if (!bingo.isNullEmpty(_tmplContext)) {
+                        curList.push(_newItem(['<script type="', _tmplContext, '">'].join('')));
+                    }
                     return;
                 }
             } else {
@@ -186,6 +192,11 @@
 
                 if (_isTmpl) {
                     curList.push(_newItem(findText));
+                } else {
+                    if (!bingo.isNullEmpty(_tmplContext)) {
+                        curList.push(_newItem(['</script>'].join('')));
+                        _tmplContext = '';
+                    }
                 }
                 pos = findPos + findText.length;
                 return;
@@ -384,6 +395,7 @@
     }, _renderItem = function (compileList, view, node, data, itemName, itemIndex, count, parentData, parentWithIndex, outWithDataList) {
         var obj = parentData ? bingo.clone(parentData, false) : {};
         obj.$parent = parentData;
+        obj.itemName = itemName;
         obj[[itemName, 'index'].join('_')] = obj.$index = itemIndex;
         obj[[itemName, 'count'].join('_')] = obj.$count = count;
         obj[[itemName, 'first'].join('_')] = obj.$first = (itemIndex == 0);
@@ -402,9 +414,9 @@
 
         return outWithDataList ? bingo.compile.injectTmplWithDataIndex(str, injectIndex, parentWithIndex) : str;
 
-    }, _render = function (compileData, view, node, list, itemName, parentData, parentWithIndex, outWithDataList) {
+    }, _render = function (compileData, view, node, list, itemName, parentData, parentWithIndex, outWithDataList, formatter) {
         bingo.isString(itemName) || (itemName = 'item');
-        var htmls = [];
+        var htmls = [], hT = '';
         var withLen = outWithDataList ? outWithDataList.length : -1, withHtml = null;
         if (withLen >= 0) {
             withHtml = bingo.compile.injectTmplWithDataIndex('', -1, withLen - 1);
@@ -414,13 +426,20 @@
         var count = isArray ? list.length : 0;
 
         //header
-        compileData.header && htmls.push(_renderItem(compileData.header.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList));
+        if (compileData.header) {
+            hT = _renderItem(compileData.header.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList);
+            formatter && (hT = formatter(hT, 'header', null, -1));
+            htmls.push(hT);
+        }
 
         if (bingo.isNull(list)) {
             //null, loading或empty
             var cT = compileData.loading || compileData.empty;
-            //cT && htmls.push(_renderCompile(cT.children, view, node, parentData, parentWithIndex, outWithDataList));
-            cT && htmls.push(_renderItem(cT.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList));
+            if (cT) {
+                hT = _renderItem(cT.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList);
+                formatter && (hT = formatter(hT, compileData.loading === cT ? 'loading' : 'empty', null, -1));
+                htmls.push(hT);
+            }
         } else {
 
             if (!isArray) list = [list];
@@ -428,20 +447,28 @@
             if (list.length == 0) {
                 //empty
                 var cT = compileData.empty || compileData.loading;
-                //cT && htmls.push(_renderCompile(cT.children, view, node, parentData, parentWithIndex, outWithDataList));
-                cT && htmls.push(_renderItem(cT.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList));
+                if (cT) {
+                    hT = _renderItem(cT.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList);
+                    formatter && (hT = formatter(hT, compileData.loading === cT ? 'loading' : 'empty', null, -1));
+                    htmls.push(hT);
+                }
             } else {
                 //body
                 var compileList = compileData.body;
                 bingo.each(list, function (item, index) {
-                    htmls.push(_renderItem(compileList, view, node, item, itemName, index, count, parentData, parentWithIndex, outWithDataList));
+                    hT = _renderItem(compileList, view, node, item, itemName, index, count, parentData, parentWithIndex, outWithDataList);
+                    formatter && (hT = formatter(hT, 'body', item, index));
+                    htmls.push(hT);
                 });
             }
         }
 
         //footer
-        //compileData.footer && htmls.push(_renderCompile(compileData.footer.children, view, node, parentData, parentWithIndex, outWithDataList));
-        compileData.footer && htmls.push(_renderItem(compileData.footer.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList));
+        if (compileData.footer) {
+            hT = _renderItem(compileData.footer.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList);
+            formatter && (hT = formatter(hT, 'footer', null, -1));
+            htmls.push(hT);
+        }
 
         if (withLen >= 0) {
             htmls.push(withHtml);

@@ -59,6 +59,8 @@
             o[n] = bingo.variable(item, o, view);
         });
 
+        intellisenseAnnotate(o, p);
+
         o._isModel_ = _isModel_;
         o._p_ = p;
         o.toObject = _toObject;

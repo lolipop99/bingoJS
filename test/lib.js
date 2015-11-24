@@ -2,6 +2,7 @@
 (function (bingo, $) {
 
     var _mvcTest = window.mvcTest = {
+        //log view结构
         reportView: function (view) {
 
             var reportViewIn = function (views, list) {
@@ -41,6 +42,7 @@
             reportViewIn([view||rootView], list);
             console.log(list);
         },
+        //log view结构 返回JSON
         reportViewJson: function (view) {
 
             var reportViewIn = function (views, list) {

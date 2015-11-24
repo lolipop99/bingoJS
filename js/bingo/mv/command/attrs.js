@@ -7,7 +7,7 @@
         bg-checked="true" //直接表达式
         bg-checked="helper.checked" //绑定到变量, 双向绑定
     */
-    bingo.each('attr,prop,src,checked,disabled,enabled,readonly,class'.split(','), function (attrName) {
+    bingo.each('attr,prop,src,checked,unchecked,disabled,enabled,readonly,class'.split(','), function (attrName) {
         bingo.command('bg-' + attrName, function () {
 
             return ['$view', '$attr', '$node', function ($view, $attr, $node) {
@@ -26,6 +26,9 @@
                             break;
                         case 'enabled':
                             $node.prop('disabled', !val);
+                            break;
+                        case 'unchecked':
+                            $node.prop('checked', !val);
                             break;
                         case 'disabled':
                         case 'readonly':
@@ -47,11 +50,11 @@
                     _set(value);
                 });
 
-                if (attrName == 'checked') {
+                if (attrName == 'checked' || attrName == 'unchecked') {
                     //如果是checked, 双向绑定
                     $node.click(function () {
                         var value = $node.prop('checked');
-                        $attr.$value(value);
+                        $attr.$value(attrName == 'checked' ? value : !value);
                         $view.$update();
                     });
                 }

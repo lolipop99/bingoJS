@@ -114,7 +114,7 @@
                 cKey = '';
             var cacheTo = servers.cacheTo();
             if (cacheTo) {
-                cKey = servers.cacheQurey() ? url : url.split('?')[0];
+                cKey = servers.cacheKey() || (servers.cacheQurey() ? url : url.split('?')[0]);
                 if (!bingo.equals(datas, {}))
                     cKey = [cKey, window.JSON ? JSON.stringify(datas) : $.getJSON(datas)].join('_');
                 cKey = cKey.toLowerCase();
@@ -186,7 +186,10 @@
             cacheTo: null,
             //缓存数量， 小于等于0, 不限制数据
             cacheMax: -1,
+            //是否包函url query部分作为key 缓存数据, 默认true
             cacheQurey: true,
+            //自定义cache key, 默认为null, 以url为key
+            cacheKey:null,
             holdServer: null,
             holdParams: null
         });

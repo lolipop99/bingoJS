@@ -55,7 +55,9 @@
                         jElement.html('');
                         //if (!bingo.isArray(datas)) datas = bingo.isNull(datas) ? [] : [datas];
                         var withDataList = [];//收集数据
-                        html = renderObj.render(datas, _itemName, null, -1, withDataList);
+                        var parenData = $attr.getWithData();
+                        var parenDataIndex = parenData ? parenData.$index : -1;
+                        html = renderObj.render(datas, _itemName, parenData, parenDataIndex, withDataList);
                         //console.log(withDataList);
                         //使用withDataList进行数组批量编译
                         bingo.isNullEmpty(html) || $compile().fromHtml(html).withDataList(withDataList).appendTo(jElement).compile();

@@ -59,6 +59,7 @@
                     else {
                         var contextFn = this.context();
                         if (bingo.isFunction(contextFn)) {
+                            this.context(null);
                             return _add(this, key, contextFn(), this.max());
                         }
                     }

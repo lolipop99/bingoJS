@@ -25,6 +25,8 @@
                     property[n] = obj[n];//要分离处理
             }
         }
+
+        intellisenseAnnotate(property, obj);
         //for (var n in prototype) {
         //    if (prototype.hasOwnProperty(n) && bingo.isFunction(prototype[n])) {
         //        intellisenseSetCallContext(prototype[n], prototype);
@@ -36,15 +38,20 @@
         var prototype = define.prototype;
 
         var proNO = prototype[_proName] ? prototype[_proName].split(',') : [];
-        var item = null;
-        for (var n in obj) {
-            if (obj.hasOwnProperty(n)) {
-                item = obj[n];
-                prototype[n] = _propFn(n, item, prototype);
-                proNO.push(n);
-            }
-        }
+        //var item = null;
+        //for (var n in obj) {
+        //    if (obj.hasOwnProperty(n)) {
+        //        item = obj[n];
+        //        prototype[n] = _propFn(n, item, prototype);
+        //        proNO.push(n);
+        //    }
+        //}
+        bingo.eachProp(obj, function (item, n) {
+            prototype[n] = _propFn(n, item, prototype);
+            proNO.push(n);
+        });
         prototype[_proName] = proNO.join(',');
+        intellisenseAnnotate(prototype, obj);
 
     }, _propFn = function (name, defaultvalue, prototype) {
         var isO = bingo.isObject(defaultvalue),

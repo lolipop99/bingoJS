@@ -25,7 +25,7 @@
         /// <param name="view">可选, 需注入时用</param>
         /// <param name="node">可选, 原生node, 需注入时用</param>
         return {
-            render: function (list, itemName, parentData, parentWithIndex, outWithDataList) {
+            render: function (list, itemName, parentData, parentWithIndex, outWithDataList, formatter) {
                 /// <summary>
                 /// render数据
                 /// </summary>
@@ -34,6 +34,7 @@
                 /// <param name="parentData">可选, 上级数据</param>
                 /// <param name="parentWithIndex">可选, 上级withindex, 如果没有应该为 -1</param>
                 /// <param name="outWithDataList">可选, 数组， 收集withDataList</param>
+                /// <param name="formatter" type="function(s, role, item, index)">可选, 格式化</param>
                 return tmpl;
             }
         };

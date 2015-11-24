@@ -31,4 +31,21 @@
         };
     });
 
+    bingo.command('bg-loaded', function () {
+
+        return {
+            //优先级, 越大越前, 默认50
+            priority: 5,
+            link: ['$attr', function ($attr) {
+
+                $attr.$init(function () {
+                    return 1;
+                }, function (value) {
+                    $attr.$eval();
+                });
+
+            }]
+        };
+    });
+
 })(bingo);

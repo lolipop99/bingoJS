@@ -1,0 +1,16 @@
+﻿<div style="visibility:hidden;"
+     bg-action="action/command/renderSync">
+    
+    <div bg-render-sync="item in list">
+        <div>
+            <span bg-click="ccc(this, item, $index)">{{: item.id}}: {{: item.text | text}}</span>
+            <button bg-click="up(item)">上移</button>
+            <button bg-click="remove(item)">删除行</button>
+        </div>
+    </div>
+
+    <div>
+        <button bg-click="add">添加行</button>
+    </div>
+
+</div>

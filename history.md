@@ -1,4 +1,55 @@
-#### 1.2.1.1510223
+#### 1.2.2.151124
+
+1. 增强render的tmpl指令， 支持{{tmpl text/html}}{{: item.name}}{{/tmpl}}
+
+```
+var str = bingo.render('{{tmpl}}{{: item.aaaa}}{{/tmpl}}').render({});
+//str结果为 {{: item.aaaa}}
+
+str = bingo.render('{{tmpl text/html}}{{: item.aaaa}}{{/tmpl}}').render({});
+//str结果为 <script type=" text/html">{{: item.aaaa}}</script>
+//当时{{tmpl text/html}}时会自动生成<script type=" text/html">标签
+
+```
+2. 添加bg-unchecked模板指令
+
+3. 添加bg-loaded模板指令
+
+4. ajax添加cacheKey属性，自定义cache key, 默认为null
+
+```
+bingo.ajax('api/userlist').cacheTo(window).cacheKey('_user_list').post();
+```
+
+5. bingo.render添加参数formatter
+
+```
+var list = [{
+        id: '111',
+        text: 'text1'
+    }, {
+        id: '222',
+        text: 'text2'
+    }];
+//编译rd对象
+var rd = bingo.render('{{: item.text}}');
+//render, 参数：formatter = function(s, role){}
+var html = rd.render(list, 'item', null, -1, null, function (s, role) {
+    console.log(arguments);
+    if (role == 'body') {
+        s += '|||';
+    }
+    return s;
+});
+//log结果: text1|||text2|||
+console.log(html);
+```
+
+6. 修正bg-render/bg-for的parentData
+
+7. 优化代码
+
+#### 1.2.1.151023
 
 1. 紧急修复因inArray方法与IE8以下版本兼容导致不能用问题
 
