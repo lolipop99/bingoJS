@@ -19,7 +19,7 @@
 
     var bingo = window.bingo = {
         //主版本号.子版本号.修正版本号.编译版本号(日期)
-        version: { major: 1, minor: 2, rev: 2, build: 151124, toString: function () { return [this.major, this.minor, this.rev, this.build].join('.'); } },
+        version: { major: 1, minor: 2, rev: 3, build: 160104, toString: function () { return [this.major, this.minor, this.rev, this.build].join('.'); } },
         isDebug: false,
         prdtVersion: '',
         supportWorkspace: false,

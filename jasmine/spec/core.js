@@ -1353,21 +1353,15 @@ describe('bingo.core - ' + helper.versionString, function () {
             var l = bingo.linq(listObj).group(function () {
                 return this.n;
             }).toArray();
-            expect(l).toEqual([{ "group": 1, "items": [{ "n": 1 }] },
-                { "group": 2, "items": [{ "n": 2, "d": 1 }, { "n": 2, "d": 2 }] },
-                { "group": 3, "items": [{ "n": 3 }] }, { "group": 4, "items": [{ "n": 4 }] }]);
+            expect(l).toEqual([{ group: 1, groupData: 1, items: [{ n: 1 }] }, { group: 2, groupData: 2, items: [{ n: 2, d: 1 }, { n: 2, d: 2 }] }, { group: 3, groupData: 3, items: [{ n: 3 }] }, { group: 4, groupData: 4, items: [{ n: 4 }] }]);
 
             //分组, 根据n
             l = bingo.linq(listObj).group('n').toArray();
-            expect(l).toEqual([{ "group": 1, "items": [{ "n": 1 }] },
-                { "group": 2, "items": [{ "n": 2, "d": 1 }, { "n": 2, "d": 2 }] },
-                { "group": 3, "items": [{ "n": 3 }] }, { "group": 4, "items": [{ "n": 4 }] }]);
+            expect(l).toEqual([{ group: 1, groupData: 1, items: [{ n: 1 }] }, { group: 2, groupData: 2, items: [{ n: 2, d: 1 }, { n: 2, d: 2 }] }, { group: 3, groupData: 3, items: [{ n: 3 }] }, { group: 4, groupData: 4, items: [{ n: 4 }] }]);
 
             //分组, 根据n, 并制定相关名称
             l = bingo.linq(listObj).group('n', 'gData', 'gItems').toArray();
-            expect(l).toEqual([{ "gData": 1, "gItems": [{ "n": 1 }] },
-                { "gData": 2, "gItems": [{ "n": 2, "d": 1 }, { "n": 2, "d": 2 }] },
-                { "gData": 3, "gItems": [{ "n": 3 }] }, { "gData": 4, "gItems": [{ "n": 4 }] }]);
+            expect(l).toEqual([{ gData: 1, gDataData: 1, gItems: [{ n: 1 }] }, { gData: 2, gDataData: 2, gItems: [{ n: 2, d: 1 }, { n: 2, d: 2 }] }, { gData: 3, gDataData: 3, gItems: [{ n: 3 }] }, { gData: 4, gDataData: 4, gItems: [{ n: 4 }] }]);
 
         });
 

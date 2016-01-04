@@ -187,3 +187,42 @@ bingo.using('service/userService');
     }); //end controller
 
 })();
+
+
+//function biloading() {
+//    //设备判断
+//    var sUserAgent = navigator.userAgent.toLowerCase();
+//    var bIsIpad = sUserAgent.match(/ipad/i) == "ipad";
+//    var bIsIphoneOs = sUserAgent.match(/iphone os/i) == "iphone os";
+//    var bIsMidp = sUserAgent.match(/midp/i) == "midp";
+//    var bIsUc7 = sUserAgent.match(/rv:1.2.3.4/i) == "rv:1.2.3.4";
+//    var bIsUc = sUserAgent.match(/ucweb/i) == "ucweb";
+//    var bIsAndroid = sUserAgent.match(/android/i) == "android";
+//    var bIsCE = sUserAgent.match(/windows ce/i) == "windows ce";
+//    var bIsWM = sUserAgent.match(/windows mobile/i) == "windows mobile";
+//    var viewconten = "<meta id='viewportname' name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' />";
+
+
+//    if (bIsIphoneOs || bIsMidp || bIsUc7 || bIsUc || bIsAndroid || bIsCE || bIsWM) {
+//        if (window.orientation == 90 || window.orientation == -90) {
+//            //横屏
+//            $("body").attr("class", "landscape");
+//            $('head').append(viewconten);
+//            return false;
+//        } else if (window.orientation == 0 || window.orientation == 180) {
+//            adaptUILayout.adapt(480);
+//            //竖屏
+//            $('#viewportname').remove();
+//            $("body").attr("class", "portrait");
+//            return false;
+//        }
+
+//    } else if (bIsIpad) {
+//        $("body").addClass('ipad');
+//    }
+//}
+
+////用户变化屏幕方向时调用
+//$(window).bind('orientationchange', function (e) {
+//    biloading();
+//});

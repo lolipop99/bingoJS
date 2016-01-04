@@ -25,6 +25,11 @@
         st: 'label-success'
     }];
 
+    for (var i = 0; i < 4; i++)
+        _list = _list.concat(_list);
+
+    console.log(_list.length);
+
     bingo.module('home', function () {
 
         bingo.action('table', function ($view, $location, $param) {

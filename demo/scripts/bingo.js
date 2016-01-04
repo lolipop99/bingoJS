@@ -1,4 +1,7 @@
 ﻿/// <reference path="../jquery/jquery-1.8.1.js" />
+
+//https://git.oschina.net/bingoJS/bingoJS
+
 (window.console && window.console.log) || (window.console = { log: function () { }, error: function () { }, info: function () { }, table: function () { } });
 ﻿
 ;(function () {
@@ -21,7 +24,7 @@
 
     var bingo = window.bingo = {
         //主版本号.子版本号.修正版本号.编译版本号(日期)
-        version: { major: 1, minor: 2, rev: 1, build:151023, toString: function () { return [this.major, this.minor, this.rev, this.build].join('.'); } },
+        version: { major: 1, minor: 2, rev: 3, build: 160104, toString: function () { return [this.major, this.minor, this.rev, this.build].join('.'); } },
         isDebug: false,
         prdtVersion: '',
         supportWorkspace: false,
@@ -1134,7 +1137,9 @@
                 /// <summary>
                 /// 映射(改造)<br />
                 /// select('id');<br />
+                /// select('id', true);<br />
                 /// select(function(item, index){ return {a:item.__a, b:item.c+item.d} ;});
+                /// select(function(item, index){ return {a:item.__a, b:item.c+item.d} ;}, true);
                 /// </summary>
                 /// <param name="fn" type="function(item, index)"></param>
                 /// <param name="isMerge">是否合并数组</param>
@@ -1345,6 +1350,7 @@
                     if (rT == null) {
                         rT = {};
                         rT[groupName] = vT;
+                        rT[groupName + 'Data'] = vT;
                         rT[itemName] = [iT];
                         rList.push(rT);
                     } else {
@@ -2193,6 +2199,7 @@
                     else {
                         var contextFn = this.context();
                         if (bingo.isFunction(contextFn)) {
+                            this.context(null);
                             return _add(this, key, contextFn(), this.max());
                         }
                     }
@@ -3178,7 +3185,7 @@
                 cKey = '';
             var cacheTo = servers.cacheTo();
             if (cacheTo) {
-                cKey = servers.cacheQurey() ? url : url.split('?')[0];
+                cKey = servers.cacheKey() || (servers.cacheQurey() ? url : url.split('?')[0]);
                 if (!bingo.equals(datas, {}))
                     cKey = [cKey, window.JSON ? JSON.stringify(datas) : $.getJSON(datas)].join('_');
                 cKey = cKey.toLowerCase();
@@ -3250,7 +3257,10 @@
             cacheTo: null,
             //缓存数量， 小于等于0, 不限制数据
             cacheMax: -1,
+            //是否包函url query部分作为key 缓存数据, 默认true
             cacheQurey: true,
+            //自定义cache key, 默认为null, 以url为key
+            cacheKey:null,
             holdServer: null,
             holdParams: null
         });
@@ -4833,7 +4843,7 @@
                 if (arguments.length == 1) {
                     p1 = p;
                     var $this = this;
-                    p = function () { return $this.$results(); };
+                    p = function () { return $this.$attrValue(); };
                 }
                 this.__initParam = { p: p, p1: p1 };
                 if (this.__isinit)
@@ -5225,7 +5235,7 @@
     //version 1.1.0
     "use strict";
 
-    bingo.render = function (tmpl, view, node) {
+    bingo.render = function (tmpl, view, node, tmplObj) {
         /// <summary>
         /// 
         /// </summary>
@@ -5235,8 +5245,42 @@
         bingo.render.regex.lastIndex = 0;
         _commentRegx.lastIndex = 0;
         tmpl = tmpl.replace(_commentRegx, '');
-        var compileData = bingo.render.regex.test(tmpl) ? _compile(tmpl, view, node) : null;
-        compileData && (compileData = _makeForCompile(compileData));
+
+        if (tmpl.indexOf('#') == 0 && tmpl.indexOf('{') < 0) {
+            if (view.__render_tmpls__$) {
+                tmpl = view.__render_tmpls__$[tmpl];
+            }
+            if (tmpl.indexOf('#') == 0 && tmpl.indexOf('{') < 0)
+                tmpl = $(tmpl).html();
+        }
+        var compileData = null;
+        if (!bingo.isNullEmpty(tmpl)) {
+
+            compileData = bingo.render.regex.test(tmpl) ? _compile(tmpl, view, node) : null;
+
+            if (compileData) {
+
+                //tmplObj为转入tmpl == > {'#001':'{{: item.count}}'}
+
+                compileData = _makeForCompile(compileData);
+                var allTmpls = null;
+                if (view && !view.isDisposed) {
+                    allTmpls = (view.__render_tmpls__$ || (view.__render_tmpls__$ = {}));
+                    compileData.tmpls && bingo.extend(allTmpls, compileData.tmpls);
+                } else
+                    allTmpls = (compileData.tmpls || {});
+
+                tmplObj && (allTmpls != tmplObj) && bingo.extend(allTmpls, tmplObj);
+                compileData.tmpls = allTmpls;
+
+
+                if (view && compileData.tmpls) {
+                    view.__render_tmpls__$ = bingo.extend({}, view.__render_tmpls__$, compileData.tmpls);
+                }
+
+            }
+        }
+
         //console.log('compileData', compileData);
         return {
             //renderItem: function (data, itemName, itemIndex, count, parentData, parentWithIndex, outWithDataList) {
@@ -5253,7 +5297,7 @@
             //    if (!compileList) return tmpl;
             //    return _renderItem(compileList, view, node, data, itemName, itemIndex, count, parentData, parentWithIndex, outWithDataList);
             //},
-            render: function (list, itemName, parentData, parentWithIndex, outWithDataList) {
+            render: function (list, itemName, parentData, parentWithIndex, outWithDataList, formatter) {
                 /// <summary>
                 /// 
                 /// </summary>
@@ -5262,8 +5306,9 @@
                 /// <param name="parentData">可选, 上级数据</param>
                 /// <param name="parentWithIndex">可选, 上级withindex, 如果没有应该为 -1</param>
                 /// <param name="outWithDataList">可选, 数组， 收集withDataList</param>
+                /// <param name="formatter" type="function(s, role, item)">可选, 格式化</param>
                 if (!compileData) return tmpl;
-                return _render(compileData, view, node, list, itemName, parentData, parentWithIndex, outWithDataList);
+                return _render(compileData, view, node, list, itemName, parentData, parentWithIndex, outWithDataList, formatter);
             }
         };
     };
@@ -5296,7 +5341,9 @@
             filterContext: null,
             fn: bingo.noop,
             flt: null,
-            children: []
+            children: [],
+            //用于存放{{tmpl #001}}的#001值
+            tmplId:''
         };
         if (item.isTag) {
             if (!item.isEnd) {
@@ -5366,7 +5413,7 @@
 
     var _compile = function (s, view, node) {
         var list = [],
-            pos = 0, parents = [], _isTmpl = false, tmplCount = 0,
+            pos = 0, parents = [], _isTmpl = false, tmplCount = 0, _tmplContext = '', _tmplItem = null,
             _last = function (len) { return (len > 0) ? parents[len - 1].children : list; },
             _parent = function (len) { return (len > 0) ? parents.pop().children : list; };
         s.replace(bingo.render.regex, function (findText, f1, f2, f3, findPos, allText) {
@@ -5389,8 +5436,28 @@
                 _isTmpl = isTmpl;
                 //curList.push(textItem);
                 if (isTmpl) {
+                    //处理{{tmpl}}
+                    textItem && curList.push(textItem);
                     pos = findPos + findText.length;
+
                     tmplCount = 1;
+                    _tmplContext = bingo.trim(f3);
+
+                    //新建一个tmplItem, 累加tmpl的所有内容
+                    _tmplItem = _newItem('');
+
+                    if (!bingo.isNullEmpty(_tmplContext)) {
+                        if (_tmplContext.indexOf('#') == 0) {
+                            //处理{{tmpl #001}}
+                            list.push(_tmplItem);//添加到根， 不添加到当前范围
+                            _tmplItem.tmplId = _tmplContext;
+                            _tmplContext = '';
+                        } else {
+                            curList.push(_tmplItem);
+                            //处理{{tmpl text/html}}
+                            _tmplItem.content = [_tmplItem.content, '<script type="', _tmplContext, '">'].join('');
+                        }
+                    }
                     return;
                 }
             } else {
@@ -5404,10 +5471,18 @@
                         tmplCount++;
                 }
 
-                textItem && curList.push(textItem);
+                //添加之前文本
+                _tmplItem.content = [_tmplItem.content, textTemp].join('');
 
                 if (_isTmpl) {
-                    curList.push(_newItem(findText));
+                    //添加文本
+                    _tmplItem.content = [_tmplItem.content, findText].join('');
+                } else {
+                    //退出tmpl, 处理{{/tmpl}}
+                    if (!bingo.isNullEmpty(_tmplContext)) {
+                        _tmplItem.content = [_tmplItem.content, '</script>'].join('');
+                        _tmplContext = '', _tmplItem = null;
+                    }
                 }
                 pos = findPos + findText.length;
                 return;
@@ -5493,7 +5568,7 @@
                 textItem && curList.push(textItem);
                 //插入项
                 curList.push(item);
-                //如果是if, 设置为父项
+                //如果是if, for, role>0, 设置为父项
                 (isIf || (isForeach && !isEndFor) || role > 0) && parents.push(item);
             }
 
@@ -5512,25 +5587,31 @@
             footer: null,
             empty: null,
             loading: null,
+            tmpls:null,
             body: []
         };
         bingo.each(list, function () {
-            switch (this.role) {
-                case 1:
-                    obj.header = this;
-                    break;
-                case 2:
-                    obj.footer = this;
-                    break;
-                case 3:
-                    obj.empty = this;
-                    break;
-                case 4:
-                    obj.loading = this;
-                    break;
-                default:
-                    obj.body.push(this);
-                    break;
+            if (!bingo.isNullEmpty(this.tmplId)) {
+                obj.tmpls || (obj.tmpls = {});
+                obj.tmpls[this.tmplId] = this.content;
+            } else {
+                switch (this.role) {
+                    case 1:
+                        obj.header = this;
+                        break;
+                    case 2:
+                        obj.footer = this;
+                        break;
+                    case 3:
+                        obj.empty = this;
+                        break;
+                    case 4:
+                        obj.loading = this;
+                        break;
+                    default:
+                        obj.body.push(this);
+                        break;
+                }
             }
         });
         return obj;
@@ -5544,7 +5625,7 @@
             }
         }
         return false;
-    }, _renderCompile = function (compileList, view, node, data, dataWithIndex, outWithDataList) {
+    }, _renderCompile = function (compileList, view, node, data, dataWithIndex, outWithDataList, compileData) {
         var list = [], perReturn = [];
         bingo.each(compileList, function (item, index) {
             if (!item.isTag)
@@ -5559,24 +5640,28 @@
                     //if (!dataList) return;
                     var html = '';
                     if (bingo.isNullEmpty(tmplId)) {
-                        var compileData = item.compileData;
-                        if (!compileData) {
-                            compileData = item.compileData = _makeForCompile(item.children);
+                        var compileDataTmpl = item.compileData;
+                        if (!compileDataTmpl) {
+                            compileDataTmpl = item.compileData = _makeForCompile(item.children);
+                            compileDataTmpl.tmpls = compileData.tmpls;
                             item.children = [];
                         }
-                        html = _render(compileData, view, node, dataList, forParam.itemName, data, dataWithIndex, outWithDataList);
+                        html = _render(compileDataTmpl, view, node, dataList, forParam.itemName, data, dataWithIndex, outWithDataList);
                     } else {
                         if (!item.__renderObj) {
                             var isPath = (tmplId.indexOf('#') != 0);//如果有#开头, 认为ID, 如:'$div1; 否则认为url, 如:tmpl/add.html
                             if (!isPath) {
-                                html = $(tmplId).html();//todo远程加载
+                                if (compileData.tmpls && compileData.tmpls[tmplId])
+                                    html = compileData.tmpls[tmplId]
+                                else
+                                    html = $(tmplId).html();
                             } else {
                                 bingo.tmpl(tmplId, view).success(function (rs) {
                                     html = rs;
                                 }).cacheQurey(true).async(false).get();
                             }
                             if (bingo.isNullEmpty(html)) return;
-                            item.__renderObj = bingo.render(html, view, node);
+                            item.__renderObj = bingo.render(html, view, node, compileData.tmpls);
                         }
                         html = item.__renderObj.render(dataList, forParam.itemName, data, dataWithIndex, outWithDataList);
                     }
@@ -5592,8 +5677,7 @@
                         //如果执行条件失败跳过children, 并保存条件结果
                         if (!(item.ifReturn = item.flt.filter(item.fn(view, data), data))) return;
                     }
-                    var str = _renderCompile(item.children, view, node, data, dataWithIndex, outWithDataList);
-                    //var str = _renderCompile(item.children, view, node, data, dataWithIndex);
+                    var str = _renderCompile(item.children, view, node, data, dataWithIndex, outWithDataList, compileData);
                     list.push(str);
                 } else {
                     //tag
@@ -5603,9 +5687,10 @@
             }
         });
         return list.join('');
-    }, _renderItem = function (compileList, view, node, data, itemName, itemIndex, count, parentData, parentWithIndex, outWithDataList) {
+    }, _renderItem = function (compileList, view, node, data, itemName, itemIndex, count, parentData, parentWithIndex, outWithDataList, compileData) {
         var obj = parentData ? bingo.clone(parentData, false) : {};
         obj.$parent = parentData;
+        obj.itemName = itemName;
         obj[[itemName, 'index'].join('_')] = obj.$index = itemIndex;
         obj[[itemName, 'count'].join('_')] = obj.$count = count;
         obj[[itemName, 'first'].join('_')] = obj.$first = (itemIndex == 0);
@@ -5620,13 +5705,13 @@
         outWithDataList && outWithDataList.push(obj);
         var injectIndex = outWithDataList ? outWithDataList.length - 1 : -1;
 
-        var str = _renderCompile(compileList, view, node, obj, itemIndex, outWithDataList);
+        var str = _renderCompile(compileList, view, node, obj, itemIndex, outWithDataList, compileData);
 
         return outWithDataList ? bingo.compile.injectTmplWithDataIndex(str, injectIndex, parentWithIndex) : str;
 
-    }, _render = function (compileData, view, node, list, itemName, parentData, parentWithIndex, outWithDataList) {
+    }, _render = function (compileData, view, node, list, itemName, parentData, parentWithIndex, outWithDataList, formatter) {
         bingo.isString(itemName) || (itemName = 'item');
-        var htmls = [];
+        var htmls = [], hT = '';
         var withLen = outWithDataList ? outWithDataList.length : -1, withHtml = null;
         if (withLen >= 0) {
             withHtml = bingo.compile.injectTmplWithDataIndex('', -1, withLen - 1);
@@ -5636,13 +5721,20 @@
         var count = isArray ? list.length : 0;
 
         //header
-        compileData.header && htmls.push(_renderItem(compileData.header.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList));
+        if (compileData.header) {
+            hT = _renderItem(compileData.header.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList, compileData);
+            formatter && (hT = formatter(hT, 'header', null, -1));
+            htmls.push(hT);
+        }
 
         if (bingo.isNull(list)) {
             //null, loading或empty
             var cT = compileData.loading || compileData.empty;
-            //cT && htmls.push(_renderCompile(cT.children, view, node, parentData, parentWithIndex, outWithDataList));
-            cT && htmls.push(_renderItem(cT.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList));
+            if (cT) {
+                hT = _renderItem(cT.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList, compileData);
+                formatter && (hT = formatter(hT, compileData.loading === cT ? 'loading' : 'empty', null, -1));
+                htmls.push(hT);
+            }
         } else {
 
             if (!isArray) list = [list];
@@ -5650,20 +5742,28 @@
             if (list.length == 0) {
                 //empty
                 var cT = compileData.empty || compileData.loading;
-                //cT && htmls.push(_renderCompile(cT.children, view, node, parentData, parentWithIndex, outWithDataList));
-                cT && htmls.push(_renderItem(cT.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList));
+                if (cT) {
+                    hT = _renderItem(cT.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList, compileData);
+                    formatter && (hT = formatter(hT, compileData.loading === cT ? 'loading' : 'empty', null, -1));
+                    htmls.push(hT);
+                }
             } else {
                 //body
                 var compileList = compileData.body;
                 bingo.each(list, function (item, index) {
-                    htmls.push(_renderItem(compileList, view, node, item, itemName, index, count, parentData, parentWithIndex, outWithDataList));
+                    hT = _renderItem(compileList, view, node, item, itemName, index, count, parentData, parentWithIndex, outWithDataList, compileData);
+                    formatter && (hT = formatter(hT, 'body', item, index));
+                    htmls.push(hT);
                 });
             }
         }
 
         //footer
-        //compileData.footer && htmls.push(_renderCompile(compileData.footer.children, view, node, parentData, parentWithIndex, outWithDataList));
-        compileData.footer && htmls.push(_renderItem(compileData.footer.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList));
+        if (compileData.footer) {
+            hT = _renderItem(compileData.footer.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList, compileData);
+            formatter && (hT = formatter(hT, 'footer', null, -1));
+            htmls.push(hT);
+        }
 
         if (withLen >= 0) {
             htmls.push(withHtml);
@@ -6202,7 +6302,7 @@
         bg-checked="true" //直接表达式
         bg-checked="helper.checked" //绑定到变量, 双向绑定
     */
-    bingo.each('attr,prop,src,checked,disabled,enabled,readonly,class'.split(','), function (attrName) {
+    bingo.each('attr,prop,src,checked,unchecked,disabled,enabled,readonly,class'.split(','), function (attrName) {
         bingo.command('bg-' + attrName, function () {
 
             return ['$view', '$attr', '$node', function ($view, $attr, $node) {
@@ -6221,6 +6321,9 @@
                             break;
                         case 'enabled':
                             $node.prop('disabled', !val);
+                            break;
+                        case 'unchecked':
+                            $node.prop('checked', !val);
                             break;
                         case 'disabled':
                         case 'readonly':
@@ -6242,11 +6345,11 @@
                     _set(value);
                 });
 
-                if (attrName == 'checked') {
+                if (attrName == 'checked' || attrName == 'unchecked') {
                     //如果是checked, 双向绑定
                     $node.click(function () {
                         var value = $node.prop('checked');
-                        $attr.$value(value);
+                        $attr.$value(attrName == 'checked' ? value : !value);
                         $view.$update();
                     });
                 }
@@ -6369,7 +6472,9 @@
                         jElement.html('');
                         //if (!bingo.isArray(datas)) datas = bingo.isNull(datas) ? [] : [datas];
                         var withDataList = [];//收集数据
-                        html = renderObj.render(datas, _itemName, null, -1, withDataList);
+                        var parenData = $attr.getWithData();
+                        var parenDataIndex = parenData ? parenData.$index : -1;
+                        html = renderObj.render(datas, _itemName, parenData, parenDataIndex, withDataList);
                         //console.log(withDataList);
                         //使用withDataList进行数组批量编译
                         bingo.isNullEmpty(html) || $compile().fromHtml(html).withDataList(withDataList).appendTo(jElement).compile();
@@ -6400,10 +6505,8 @@
                                     initTmpl(html);
                                 }
                             }).get();
-                        } else {
-                            //从ID加载
-                            html = $(_tmpl).html();
-                        }
+                        } else
+                            html = _tmpl;
                     }
 
                     if (!bingo.isNullEmpty(html)) {
@@ -6889,6 +6992,23 @@
         return {
             //是否编译子节点, 默认为true
             compileChild: false
+        };
+    });
+
+    bingo.command('bg-loaded', function () {
+
+        return {
+            //优先级, 越大越前, 默认50
+            priority: 5,
+            link: ['$attr', function ($attr) {
+
+                $attr.$init(function () {
+                    return 1;
+                }, function (value) {
+                    $attr.$eval();
+                });
+
+            }]
         };
     });
 

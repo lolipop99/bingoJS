@@ -58,7 +58,7 @@ window.intellisenseLogMessage = function (msg) {
 
     var bingo = window.bingo = window.bingo = {
         //主版本号.子版本号.修正版本号.编译版本号(日期)
-        version: { major: 1, minor: 2, rev: 1, build: 151016, toString: function () { return [this.major, this.minor, this.rev, this.build].join('.'); } },
+        version: { major: 1, minor: 3, rev: 0, build: 160104, toString: function () { return [this.major, this.minor, this.rev, this.build].join('.'); } },
         ///<field>调试开关, 默认false</field>
         isDebug: false,
         ///<field>产品版本号</field>
@@ -793,6 +793,8 @@ window.intellisenseLogMessage = function (msg) {
                     property[n] = obj[n];//要分离处理
             }
         }
+
+        intellisenseAnnotate(property, obj);
         //for (var n in prototype) {
         //    if (prototype.hasOwnProperty(n) && bingo.isFunction(prototype[n])) {
         //        intellisenseSetCallContext(prototype[n], prototype);
@@ -804,15 +806,20 @@ window.intellisenseLogMessage = function (msg) {
         var prototype = define.prototype;
 
         var proNO = prototype[_proName] ? prototype[_proName].split(',') : [];
-        var item = null;
-        for (var n in obj) {
-            if (obj.hasOwnProperty(n)) {
-                item = obj[n];
-                prototype[n] = _propFn(n, item, prototype);
-                proNO.push(n);
-            }
-        }
+        //var item = null;
+        //for (var n in obj) {
+        //    if (obj.hasOwnProperty(n)) {
+        //        item = obj[n];
+        //        prototype[n] = _propFn(n, item, prototype);
+        //        proNO.push(n);
+        //    }
+        //}
+        bingo.eachProp(obj, function (item, n) {
+            prototype[n] = _propFn(n, item, prototype);
+            proNO.push(n);
+        });
         prototype[_proName] = proNO.join(',');
+        intellisenseAnnotate(prototype, obj);
 
     }, _propFn = function (name, defaultvalue, prototype) {
         var isO = bingo.isObject(defaultvalue),
@@ -1373,7 +1380,9 @@ window.intellisenseLogMessage = function (msg) {
                 /// <summary>
                 /// 映射(改造)<br />
                 /// select('id');<br />
+                /// select('id', true);<br />
                 /// select(function(item, index){ return {a:item.__a, b:item.c+item.d} ;});
+                /// select(function(item, index){ return {a:item.__a, b:item.c+item.d} ;}, true);
                 /// </summary>
                 /// <param name="fn" type="function(item, index)"></param>
                 /// <param name="isMerge">可选, 是否合并数组, 默认false</param>
@@ -1531,6 +1540,7 @@ window.intellisenseLogMessage = function (msg) {
                 itemName || (itemName = 'items');
                 var obj = {};
                 obj[groupName] = 'group';
+                obj[groupName + 'Data'] = this._datas ? this._datas[0] : {};
                 obj[itemName] = this._datas;
 
                 this._datas = [obj];
@@ -2613,6 +2623,8 @@ window.intellisenseLogMessage = function (msg) {
             o[n] = bingo.variable(item, o, view);
         });
 
+        intellisenseAnnotate(o, p);
+
         o._isModel_ = _isModel_;
         o._p_ = p;
         o.toObject = _toObject;
@@ -2800,6 +2812,8 @@ window.intellisenseLogMessage = function (msg) {
             cacheMax: -1,
             //是否包函url query部分作为key 缓存数据, 默认true
             cacheQurey: true,
+            //自定义cache key, 默认为null, 以url为key
+            cacheKey: null,
             //hold server数据, function(response, isSuccess, xhr){return return [response, isSuccess, xhr];}
             holdServer: null,
             //处理参数, function(){ return this.param()}
@@ -3484,11 +3498,19 @@ window.intellisenseLogMessage = function (msg) {
                 return this;
             },
             $init: function (p, p1) {
+                /// <signature>
+                /// <summary>
+                /// 根据$attrValue, 做初始化
+                /// </summary>
+                /// <param name="p" type="function(value)">初始化, function(value){}</param>
+                /// </signature>
+                /// <signature>
                 /// <summary>
                 /// 根据p执行结果, 做初始化
                 /// </summary>
                 /// <param name="p">可以属性名称或function(){ return datas; }</param>
                 /// <param name="p1" type="function(value)">初始化, function(value){}</param>
+                /// </signature>
                 return this;
             },
             $initResults: function (p) {
@@ -3660,7 +3682,7 @@ window.intellisenseLogMessage = function (msg) {
         /// <param name="view">可选, 需注入时用</param>
         /// <param name="node">可选, 原生node, 需注入时用</param>
         return {
-            render: function (list, itemName, parentData, parentWithIndex, outWithDataList) {
+            render: function (list, itemName, parentData, parentWithIndex, outWithDataList, formatter) {
                 /// <summary>
                 /// render数据
                 /// </summary>
@@ -3669,6 +3691,7 @@ window.intellisenseLogMessage = function (msg) {
                 /// <param name="parentData">可选, 上级数据</param>
                 /// <param name="parentWithIndex">可选, 上级withindex, 如果没有应该为 -1</param>
                 /// <param name="outWithDataList">可选, 数组， 收集withDataList</param>
+                /// <param name="formatter" type="function(s, role, item, index)">可选, 格式化</param>
                 return tmpl;
             }
         };

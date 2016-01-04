@@ -340,11 +340,19 @@
                 return this;
             },
             $init: function (p, p1) {
+                /// <signature>
+                /// <summary>
+                /// 根据$attrValue, 做初始化
+                /// </summary>
+                /// <param name="p" type="function(value)">初始化, function(value){}</param>
+                /// </signature>
+                /// <signature>
                 /// <summary>
                 /// 根据p执行结果, 做初始化
                 /// </summary>
                 /// <param name="p">可以属性名称或function(){ return datas; }</param>
                 /// <param name="p1" type="function(value)">初始化, function(value){}</param>
+                /// </signature>
                 return this;
             },
             $initResults: function (p) {

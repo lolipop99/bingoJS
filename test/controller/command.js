@@ -371,8 +371,18 @@ bingo.using('service/userService');
         bingo.action('renderSync', function ($view, $var) {
             window.$viewRenderSync = $view;
 
+            $view.cNode = null;
+
             $view.onReady(function () {
                 $view.$getNode().css('visibility', 'visible');
+
+                
+
+                //$($view.cNode).bind('DOMNodeInsertedIntoDocument', function () {
+                //    console.log('DOMNodeInsertedIntoDocument', this, arguments);
+                //});
+
+                //console.log($view.cNode, $($view.cNode).size());
             });
 
             var ol = [{
@@ -422,3 +432,17 @@ bingo.using('service/userService');
     }); //end controller
 
 })();
+
+$(function () {
+    //测试IE9以上， 可以通过
+    $(document.documentElement).bind('DOMNodeRemoved', function (e) {
+        var node = this, target = e.target;
+        setTimeout(function () {
+            var parentNode = target ? target.parentNode : null;
+            //console.log('DOMNodeRemoved', node, target, parentNode);
+            if (!parentNode) {
+                console.log('DOMNodeRemoved', target);
+            }
+        });
+    });
+});

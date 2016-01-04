@@ -307,6 +307,7 @@
                     if (rT == null) {
                         rT = {};
                         rT[groupName] = vT;
+                        rT[groupName + 'Data'] = vT;
                         rT[itemName] = [iT];
                         rList.push(rT);
                     } else {

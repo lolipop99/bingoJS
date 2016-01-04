@@ -1,3 +1,12 @@
+#### 1.3.0.160104
+1. 优化render
+
+2. render支持tmpl引用: {{tmpl #001}}test {{/tmpl}}{{for item in list tmpl=#001 /}}
+
+3. 优化代码
+
+4. 更新文档
+
 #### 1.2.2.151124
 
 1. 增强render的tmpl指令， 支持{{tmpl text/html}}{{: item.name}}{{/tmpl}}

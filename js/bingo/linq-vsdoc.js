@@ -222,6 +222,7 @@
                 itemName || (itemName = 'items');
                 var obj = {};
                 obj[groupName] = 'group';
+                obj[groupName + 'Data'] = this._datas ? this._datas[0] : {};
                 obj[itemName] = this._datas;
 
                 this._datas = [obj];

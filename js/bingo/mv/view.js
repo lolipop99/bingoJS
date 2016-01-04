@@ -589,7 +589,7 @@
                 if (arguments.length == 1) {
                     p1 = p;
                     var $this = this;
-                    p = function () { return $this.$results(); };
+                    p = function () { return $this.$attrValue(); };
                 }
                 this.__initParam = { p: p, p1: p1 };
                 if (this.__isinit)

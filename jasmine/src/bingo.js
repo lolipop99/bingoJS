@@ -24,7 +24,7 @@
 
     var bingo = window.bingo = {
         //主版本号.子版本号.修正版本号.编译版本号(日期)
-        version: { major: 1, minor: 2, rev: 2, build: 151124, toString: function () { return [this.major, this.minor, this.rev, this.build].join('.'); } },
+        version: { major: 1, minor: 2, rev: 3, build: 160104, toString: function () { return [this.major, this.minor, this.rev, this.build].join('.'); } },
         isDebug: false,
         prdtVersion: '',
         supportWorkspace: false,
@@ -1350,6 +1350,7 @@
                     if (rT == null) {
                         rT = {};
                         rT[groupName] = vT;
+                        rT[groupName + 'Data'] = vT;
                         rT[itemName] = [iT];
                         rList.push(rT);
                     } else {
@@ -4842,7 +4843,7 @@
                 if (arguments.length == 1) {
                     p1 = p;
                     var $this = this;
-                    p = function () { return $this.$results(); };
+                    p = function () { return $this.$attrValue(); };
                 }
                 this.__initParam = { p: p, p1: p1 };
                 if (this.__isinit)
@@ -5234,7 +5235,7 @@
     //version 1.1.0
     "use strict";
 
-    bingo.render = function (tmpl, view, node) {
+    bingo.render = function (tmpl, view, node, tmplObj) {
         /// <summary>
         /// 
         /// </summary>
@@ -5244,8 +5245,42 @@
         bingo.render.regex.lastIndex = 0;
         _commentRegx.lastIndex = 0;
         tmpl = tmpl.replace(_commentRegx, '');
-        var compileData = bingo.render.regex.test(tmpl) ? _compile(tmpl, view, node) : null;
-        compileData && (compileData = _makeForCompile(compileData));
+
+        if (tmpl.indexOf('#') == 0 && tmpl.indexOf('{') < 0) {
+            if (view.__render_tmpls__$) {
+                tmpl = view.__render_tmpls__$[tmpl];
+            }
+            if (tmpl.indexOf('#') == 0 && tmpl.indexOf('{') < 0)
+                tmpl = $(tmpl).html();
+        }
+        var compileData = null;
+        if (!bingo.isNullEmpty(tmpl)) {
+
+            compileData = bingo.render.regex.test(tmpl) ? _compile(tmpl, view, node) : null;
+
+            if (compileData) {
+
+                //tmplObj为转入tmpl == > {'#001':'{{: item.count}}'}
+
+                compileData = _makeForCompile(compileData);
+                var allTmpls = null;
+                if (view && !view.isDisposed) {
+                    allTmpls = (view.__render_tmpls__$ || (view.__render_tmpls__$ = {}));
+                    compileData.tmpls && bingo.extend(allTmpls, compileData.tmpls);
+                } else
+                    allTmpls = (compileData.tmpls || {});
+
+                tmplObj && (allTmpls != tmplObj) && bingo.extend(allTmpls, tmplObj);
+                compileData.tmpls = allTmpls;
+
+
+                if (view && compileData.tmpls) {
+                    view.__render_tmpls__$ = bingo.extend({}, view.__render_tmpls__$, compileData.tmpls);
+                }
+
+            }
+        }
+
         //console.log('compileData', compileData);
         return {
             //renderItem: function (data, itemName, itemIndex, count, parentData, parentWithIndex, outWithDataList) {
@@ -5306,7 +5341,9 @@
             filterContext: null,
             fn: bingo.noop,
             flt: null,
-            children: []
+            children: [],
+            //用于存放{{tmpl #001}}的#001值
+            tmplId:''
         };
         if (item.isTag) {
             if (!item.isEnd) {
@@ -5376,7 +5413,7 @@
 
     var _compile = function (s, view, node) {
         var list = [],
-            pos = 0, parents = [], _isTmpl = false, tmplCount = 0, _tmplContext = '',
+            pos = 0, parents = [], _isTmpl = false, tmplCount = 0, _tmplContext = '', _tmplItem = null,
             _last = function (len) { return (len > 0) ? parents[len - 1].children : list; },
             _parent = function (len) { return (len > 0) ? parents.pop().children : list; };
         s.replace(bingo.render.regex, function (findText, f1, f2, f3, findPos, allText) {
@@ -5399,12 +5436,27 @@
                 _isTmpl = isTmpl;
                 //curList.push(textItem);
                 if (isTmpl) {
-                    curList.push(textItem);
+                    //处理{{tmpl}}
+                    textItem && curList.push(textItem);
                     pos = findPos + findText.length;
+
                     tmplCount = 1;
                     _tmplContext = bingo.trim(f3);
+
+                    //新建一个tmplItem, 累加tmpl的所有内容
+                    _tmplItem = _newItem('');
+
                     if (!bingo.isNullEmpty(_tmplContext)) {
-                        curList.push(_newItem(['<script type="', _tmplContext, '">'].join('')));
+                        if (_tmplContext.indexOf('#') == 0) {
+                            //处理{{tmpl #001}}
+                            list.push(_tmplItem);//添加到根， 不添加到当前范围
+                            _tmplItem.tmplId = _tmplContext;
+                            _tmplContext = '';
+                        } else {
+                            curList.push(_tmplItem);
+                            //处理{{tmpl text/html}}
+                            _tmplItem.content = [_tmplItem.content, '<script type="', _tmplContext, '">'].join('');
+                        }
                     }
                     return;
                 }
@@ -5419,14 +5471,17 @@
                         tmplCount++;
                 }
 
-                textItem && curList.push(textItem);
+                //添加之前文本
+                _tmplItem.content = [_tmplItem.content, textTemp].join('');
 
                 if (_isTmpl) {
-                    curList.push(_newItem(findText));
+                    //添加文本
+                    _tmplItem.content = [_tmplItem.content, findText].join('');
                 } else {
+                    //退出tmpl, 处理{{/tmpl}}
                     if (!bingo.isNullEmpty(_tmplContext)) {
-                        curList.push(_newItem(['</script>'].join('')));
-                        _tmplContext = '';
+                        _tmplItem.content = [_tmplItem.content, '</script>'].join('');
+                        _tmplContext = '', _tmplItem = null;
                     }
                 }
                 pos = findPos + findText.length;
@@ -5513,7 +5568,7 @@
                 textItem && curList.push(textItem);
                 //插入项
                 curList.push(item);
-                //如果是if, 设置为父项
+                //如果是if, for, role>0, 设置为父项
                 (isIf || (isForeach && !isEndFor) || role > 0) && parents.push(item);
             }
 
@@ -5532,25 +5587,31 @@
             footer: null,
             empty: null,
             loading: null,
+            tmpls:null,
             body: []
         };
         bingo.each(list, function () {
-            switch (this.role) {
-                case 1:
-                    obj.header = this;
-                    break;
-                case 2:
-                    obj.footer = this;
-                    break;
-                case 3:
-                    obj.empty = this;
-                    break;
-                case 4:
-                    obj.loading = this;
-                    break;
-                default:
-                    obj.body.push(this);
-                    break;
+            if (!bingo.isNullEmpty(this.tmplId)) {
+                obj.tmpls || (obj.tmpls = {});
+                obj.tmpls[this.tmplId] = this.content;
+            } else {
+                switch (this.role) {
+                    case 1:
+                        obj.header = this;
+                        break;
+                    case 2:
+                        obj.footer = this;
+                        break;
+                    case 3:
+                        obj.empty = this;
+                        break;
+                    case 4:
+                        obj.loading = this;
+                        break;
+                    default:
+                        obj.body.push(this);
+                        break;
+                }
             }
         });
         return obj;
@@ -5564,7 +5625,7 @@
             }
         }
         return false;
-    }, _renderCompile = function (compileList, view, node, data, dataWithIndex, outWithDataList) {
+    }, _renderCompile = function (compileList, view, node, data, dataWithIndex, outWithDataList, compileData) {
         var list = [], perReturn = [];
         bingo.each(compileList, function (item, index) {
             if (!item.isTag)
@@ -5579,24 +5640,28 @@
                     //if (!dataList) return;
                     var html = '';
                     if (bingo.isNullEmpty(tmplId)) {
-                        var compileData = item.compileData;
-                        if (!compileData) {
-                            compileData = item.compileData = _makeForCompile(item.children);
+                        var compileDataTmpl = item.compileData;
+                        if (!compileDataTmpl) {
+                            compileDataTmpl = item.compileData = _makeForCompile(item.children);
+                            compileDataTmpl.tmpls = compileData.tmpls;
                             item.children = [];
                         }
-                        html = _render(compileData, view, node, dataList, forParam.itemName, data, dataWithIndex, outWithDataList);
+                        html = _render(compileDataTmpl, view, node, dataList, forParam.itemName, data, dataWithIndex, outWithDataList);
                     } else {
                         if (!item.__renderObj) {
                             var isPath = (tmplId.indexOf('#') != 0);//如果有#开头, 认为ID, 如:'$div1; 否则认为url, 如:tmpl/add.html
                             if (!isPath) {
-                                html = $(tmplId).html();//todo远程加载
+                                if (compileData.tmpls && compileData.tmpls[tmplId])
+                                    html = compileData.tmpls[tmplId]
+                                else
+                                    html = $(tmplId).html();
                             } else {
                                 bingo.tmpl(tmplId, view).success(function (rs) {
                                     html = rs;
                                 }).cacheQurey(true).async(false).get();
                             }
                             if (bingo.isNullEmpty(html)) return;
-                            item.__renderObj = bingo.render(html, view, node);
+                            item.__renderObj = bingo.render(html, view, node, compileData.tmpls);
                         }
                         html = item.__renderObj.render(dataList, forParam.itemName, data, dataWithIndex, outWithDataList);
                     }
@@ -5612,8 +5677,7 @@
                         //如果执行条件失败跳过children, 并保存条件结果
                         if (!(item.ifReturn = item.flt.filter(item.fn(view, data), data))) return;
                     }
-                    var str = _renderCompile(item.children, view, node, data, dataWithIndex, outWithDataList);
-                    //var str = _renderCompile(item.children, view, node, data, dataWithIndex);
+                    var str = _renderCompile(item.children, view, node, data, dataWithIndex, outWithDataList, compileData);
                     list.push(str);
                 } else {
                     //tag
@@ -5623,7 +5687,7 @@
             }
         });
         return list.join('');
-    }, _renderItem = function (compileList, view, node, data, itemName, itemIndex, count, parentData, parentWithIndex, outWithDataList) {
+    }, _renderItem = function (compileList, view, node, data, itemName, itemIndex, count, parentData, parentWithIndex, outWithDataList, compileData) {
         var obj = parentData ? bingo.clone(parentData, false) : {};
         obj.$parent = parentData;
         obj.itemName = itemName;
@@ -5641,7 +5705,7 @@
         outWithDataList && outWithDataList.push(obj);
         var injectIndex = outWithDataList ? outWithDataList.length - 1 : -1;
 
-        var str = _renderCompile(compileList, view, node, obj, itemIndex, outWithDataList);
+        var str = _renderCompile(compileList, view, node, obj, itemIndex, outWithDataList, compileData);
 
         return outWithDataList ? bingo.compile.injectTmplWithDataIndex(str, injectIndex, parentWithIndex) : str;
 
@@ -5658,7 +5722,7 @@
 
         //header
         if (compileData.header) {
-            hT = _renderItem(compileData.header.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList);
+            hT = _renderItem(compileData.header.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList, compileData);
             formatter && (hT = formatter(hT, 'header', null, -1));
             htmls.push(hT);
         }
@@ -5667,7 +5731,7 @@
             //null, loading或empty
             var cT = compileData.loading || compileData.empty;
             if (cT) {
-                hT = _renderItem(cT.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList);
+                hT = _renderItem(cT.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList, compileData);
                 formatter && (hT = formatter(hT, compileData.loading === cT ? 'loading' : 'empty', null, -1));
                 htmls.push(hT);
             }
@@ -5679,7 +5743,7 @@
                 //empty
                 var cT = compileData.empty || compileData.loading;
                 if (cT) {
-                    hT = _renderItem(cT.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList);
+                    hT = _renderItem(cT.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList, compileData);
                     formatter && (hT = formatter(hT, compileData.loading === cT ? 'loading' : 'empty', null, -1));
                     htmls.push(hT);
                 }
@@ -5687,7 +5751,7 @@
                 //body
                 var compileList = compileData.body;
                 bingo.each(list, function (item, index) {
-                    hT = _renderItem(compileList, view, node, item, itemName, index, count, parentData, parentWithIndex, outWithDataList);
+                    hT = _renderItem(compileList, view, node, item, itemName, index, count, parentData, parentWithIndex, outWithDataList, compileData);
                     formatter && (hT = formatter(hT, 'body', item, index));
                     htmls.push(hT);
                 });
@@ -5696,7 +5760,7 @@
 
         //footer
         if (compileData.footer) {
-            hT = _renderItem(compileData.footer.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList);
+            hT = _renderItem(compileData.footer.children, view, node, null, itemName, -1, count, parentData, parentWithIndex, outWithDataList, compileData);
             formatter && (hT = formatter(hT, 'footer', null, -1));
             htmls.push(hT);
         }
@@ -6441,10 +6505,8 @@
                                     initTmpl(html);
                                 }
                             }).get();
-                        } else {
-                            //从ID加载
-                            html = $(_tmpl).html();
-                        }
+                        } else
+                            html = _tmpl;
                     }
 
                     if (!bingo.isNullEmpty(html)) {

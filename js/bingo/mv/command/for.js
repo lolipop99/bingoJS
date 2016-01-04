@@ -88,10 +88,8 @@
                                     initTmpl(html);
                                 }
                             }).get();
-                        } else {
-                            //从ID加载
-                            html = $(_tmpl).html();
-                        }
+                        } else
+                            html = _tmpl;
                     }
 
                     if (!bingo.isNullEmpty(html)) {

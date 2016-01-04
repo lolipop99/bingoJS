@@ -1,7 +1,8 @@
 ﻿<div style="visibility:hidden;"
      bg-action="action/command/renderSync">
     
-    <div bg-render-sync="item in list">
+    <div bg-render-sync="item in list"
+         bg-node="cNode">
         <div>
             <span bg-click="ccc(this, item, $index)">{{: item.id}}: {{: item.text | text}}</span>
             <button bg-click="up(item)">上移</button>
